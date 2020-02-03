@@ -7,6 +7,7 @@ import android.content.Context;
 import android.os.Bundle;
 
 import android.util.Log;
+import android.widget.Toast;
 
 import android.hardware.camera2.*;
 
@@ -42,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         }
         catch (CameraAccessException e) {
             e.printStackTrace();
-            
+            Toast.makeText(getApplicationContext(),"Error opening camera.",Toast.LENGTH_SHORT).show();
         }
         Log.i(TAG, "Camera opened");
     }
