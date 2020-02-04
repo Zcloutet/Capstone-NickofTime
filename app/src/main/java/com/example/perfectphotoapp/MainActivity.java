@@ -18,7 +18,7 @@ import android.animation.ValueAnimator;
 import android.hardware.camera2.*;
 
 public class MainActivity extends AppCompatActivity {
-    // variables refering to the camera
+    // variables referring to the camera
     protected String cameraId;
     protected CameraDevice cameraDevice;
 
