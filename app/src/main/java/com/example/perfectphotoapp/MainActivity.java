@@ -3,11 +3,17 @@ package com.example.perfectphotoapp;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.animation.Animator;
 import android.content.Context;
 import android.os.Bundle;
 
 import android.util.Log;
+import android.view.View;
+import android.view.animation.AccelerateInterpolator;
 import android.widget.Toast;
+import android.widget.ImageView;
+import android.media.MediaActionSound;
+import android.animation.ValueAnimator;
 
 import android.hardware.camera2.*;
 
@@ -15,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
     protected String cameraId;
     protected CameraDevice cameraDevice;
 
-    private static final String TAG = "PerfectPhoto MainActivity";
+    private static final String TAG = "PerfectPhoto";
 
     private final CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
         @Override
@@ -33,6 +39,46 @@ public class MainActivity extends AppCompatActivity {
             cameraDevice.close();
         }
     };
+
+    private void takePhoto() {
+
+        // play shutter sound
+        MediaActionSound mediaActionSound = new MediaActionSound();
+        mediaActionSound.play(MediaActionSound.SHUTTER_CLICK);
+
+        // flash screen
+        final ImageView flash = findViewById(R.id.imageViewFlash);
+        ValueAnimator flashAnimator = ValueAnimator.ofInt(255,0);
+        flashAnimator.setInterpolator(new AccelerateInterpolator());
+        flashAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                flash.setImageAlpha((int) animation.getAnimatedValue());
+            }
+        });
+        flashAnimator.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                flash.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                flash.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                flash.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+            }
+        });
+        flashAnimator.setDuration(700);
+        flashAnimator.start();
+    }
 
     private void openCamera() {
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
