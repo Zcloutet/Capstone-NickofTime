@@ -123,6 +123,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
+
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces();
     }
 
     @Override
