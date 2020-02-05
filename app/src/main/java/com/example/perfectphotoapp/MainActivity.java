@@ -3,11 +3,11 @@ package com.example.perfectphotoapp;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.graphics.SurfaceTexture;
 import android.animation.Animator;
 import android.content.Context;
 import android.os.Bundle;
 
-import android.graphics.SurfaceTexture;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
@@ -25,7 +25,6 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
-
 import android.view.TextureView;
 import android.util.Size;
 import android.view.Surface;
@@ -58,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
     private final CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
-
             cameraDevice = camera;
             createCameraPreview();
         }
@@ -100,34 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 // make it visible when it starts
                 flash.setVisibility(View.VISIBLE);
             }
-            protected void createCameraPreview() {
-                try {
-                    SurfaceTexture texture = textureView.getSurfaceTexture();
-                    assert texture != null;
-                    texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
-                    Surface surface = new Surface(texture);
-                    captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-                    captureRequestBuilder.addTarget(surface);
-                    cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback(){
-                        @Override
-                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                            //The camera is already closed
-                            if (null == cameraDevice) {
-                                return;
-                            }
-                            // When the session is ready, we start displaying the preview.
-                            cameraCaptureSessions = cameraCaptureSession;
-                            updatePreview();
-                        }
-                        @Override
-                        public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                            Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
-                        }
-                    }, null);
-                } catch (CameraAccessException e) {
-                    e.printStackTrace();
-                }
-            }
+
             @Override
             public void onAnimationEnd(Animator animation) {
                 // make it gone to save resources when the animation is over
@@ -149,11 +120,43 @@ public class MainActivity extends AppCompatActivity {
         flashAnimator.start();
     }
 
+    protected void createCameraPreview() {
+        try {
+            SurfaceTexture texture = textureView.getSurfaceTexture();
+            assert texture != null;
+            texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
+            Surface surface = new Surface(texture);
+            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            captureRequestBuilder.addTarget(surface);
+            cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback(){
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                    //The camera is already closed
+                    if (null == cameraDevice) {
+                        return;
+                    }
+                    // When the session is ready, we start displaying the preview.
+                    cameraCaptureSessions = cameraCaptureSession;
+                    updatePreview();
+                }
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                    Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
+                }
+            }, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void openCamera() {
         // open camera by getting camera manager and opening the first camera
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
             cameraId = manager.getCameraIdList()[0];
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
 
             if (ContextCompat.checkSelfPermission(MainActivity.this,
                     Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -170,7 +173,17 @@ public class MainActivity extends AppCompatActivity {
         }
         Log.i(TAG, "Camera opened");
     }
-
+    protected void updatePreview() {
+        if(null == cameraDevice) {
+            Log.e(TAG, "updatePreview error, return");
+        }
+        captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+        try {
+            cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
     private void closeCamera() {
         // close the camera, if one is open
         if (cameraDevice != null) {
@@ -222,7 +235,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
-
+        textureView = (TextureView) findViewById(R.id.texture);
+        assert textureView != null;
+        textureView.setSurfaceTextureListener(textureListener);
         Button buttonRequest = findViewById(R.id.button);
         buttonRequest.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -231,6 +246,24 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+    TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+            //open your camera here
+            openCamera();
+        }
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            // Transform you image captured size according to the surface width and height
+        }
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            return false;
+        }
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+        }
+    };
 
     @Override
     protected void onResume() {
