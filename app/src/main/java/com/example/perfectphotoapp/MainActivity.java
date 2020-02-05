@@ -45,8 +45,13 @@ public class MainActivity extends AppCompatActivity {
     // variables referring to the camera
     protected String cameraId;
     protected CameraDevice cameraDevice;
+    private Size imageDimension;
+    protected CaptureRequest.Builder captureRequestBuilder;
+    protected CameraCaptureSession cameraCaptureSessions;
+    private Handler mBackgroundHandler;
     // tag for logging
     private static final String TAG = "PerfectPhoto";
+    private TextureView textureView;
 
     // stateCallBack for opening cameras
     // not necessarily important to use but rather than make it null, it is here
