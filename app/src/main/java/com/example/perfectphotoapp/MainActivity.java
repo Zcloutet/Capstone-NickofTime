@@ -7,6 +7,7 @@ import android.animation.Animator;
 import android.content.Context;
 import android.os.Bundle;
 
+import android.graphics.SurfaceTexture;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
@@ -24,6 +25,18 @@ import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
+
+import android.view.TextureView;
+import android.util.Size;
+import android.view.Surface;
+import android.hardware.camera2.CaptureRequest;
+import java.util.Arrays;
+import java.util.List;
+import android.hardware.camera2.CameraCaptureSession;
+import android.os.Handler;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.params.StreamConfigurationMap;
+
 
 import android.hardware.camera2.*;
 
