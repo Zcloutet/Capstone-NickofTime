@@ -15,13 +15,23 @@ import android.widget.ImageView;
 import android.media.MediaActionSound;
 import android.animation.ValueAnimator;
 
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.widget.Button;
+
 import android.hardware.camera2.*;
 
 public class MainActivity extends AppCompatActivity {
+    private int CAMERA_PERMISSION_CODE = 1;
     // variables referring to the camera
     protected String cameraId;
     protected CameraDevice cameraDevice;
-
     // tag for logging
     private static final String TAG = "PerfectPhoto";
 
@@ -98,8 +108,13 @@ public class MainActivity extends AppCompatActivity {
         try {
             cameraId = manager.getCameraIdList()[0];
 
-            // check for permission here
-            manager.openCamera(cameraId, stateCallBack, null);
+            if (ContextCompat.checkSelfPermission(MainActivity.this,
+                    Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                requestCameraPermission();
+            }
+            else {
+                manager.openCamera(cameraId, stateCallBack, null);
+            }
         }
         catch (CameraAccessException e) {
             // if there was a problem accessing the camera, let the user know
@@ -116,6 +131,31 @@ public class MainActivity extends AppCompatActivity {
             cameraDevice = null;
         }
         Log.i(TAG, "Camera closed");
+    }
+
+    private void requestCameraPermission(){
+        if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)){
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Permission needed")
+                    .setMessage("This permission is needed for the app")
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    })
+                    .create().show();
+
+        } else{
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
+        }
     }
 
     @Override
