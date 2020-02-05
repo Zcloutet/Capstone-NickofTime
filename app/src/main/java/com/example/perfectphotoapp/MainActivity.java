@@ -1,199 +1,156 @@
 package com.example.perfectphotoapp;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.animation.Animator;
+import android.app.Activity;
 import android.content.Context;
-import android.os.Bundle;
 
-import android.util.Log;
-import android.view.View;
-import android.view.animation.AccelerateInterpolator;
+import android.os.Bundle;
 import android.widget.Toast;
-import android.widget.ImageView;
-import android.media.MediaActionSound;
-import android.animation.ValueAnimator;
+import android.view.View;
+import android.view.WindowManager;
+import android.view.SurfaceView;
+import org.opencv.android.*;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.core.*;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.objdetect.CascadeClassifier;
+import org.opencv.core.Mat;
+import android.util.Log;
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+//import org.opencv;
 
-import android.Manifest;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
-import android.widget.Button;
-
-import android.hardware.camera2.*;
-
-public class MainActivity extends AppCompatActivity {
-    private int CAMERA_PERMISSION_CODE = 1;
-    // variables referring to the camera
-    protected String cameraId;
-    protected CameraDevice cameraDevice;
-    // tag for logging
-    private static final String TAG = "PerfectPhoto";
-
-    // stateCallBack for opening cameras
-    // not necessarily important to use but rather than make it null, it is here
-    private final CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
-        @Override
-        public void onOpened(@NonNull CameraDevice camera) {
-            cameraDevice = camera;
+public class MainActivity extends Activity implements CvCameraViewListener{
+    static {
+        if (!OpenCVLoader.initDebug()) {
+            // Handle initialization error
         }
+    }
+    private CameraBridgeViewBase openCvCameraView;
+    private CascadeClassifier cascadeClassifier;
+    private Mat grayscaleImage;
+    private int absoluteFaceSize;
+    public void displayMessage(View v) {
+
+        Toast.makeText(getApplicationContext(), "You pressed a button", Toast.LENGTH_LONG).show();
+
+    }
+    private static final String TAG = "MainActivity";
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 
         @Override
-        public void onDisconnected(@NonNull CameraDevice camera) {
-            cameraDevice.close();
-        }
-
-        @Override
-        public void onError(@NonNull CameraDevice camera, int error) {
-            cameraDevice.close();
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i(TAG, "OpenCV loaded successfully");
+                    initializeOpenCVDependencies();
+                    //mOpenCvCameraView.enableView();
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
         }
     };
+    private void initializeOpenCVDependencies() {
 
-    private void takePhoto() {
-
-        // play shutter sound
-        Log.i(TAG, "playing shutter sound");
-        MediaActionSound mediaActionSound = new MediaActionSound();
-        mediaActionSound.play(MediaActionSound.SHUTTER_CLICK);
-
-        // flash screen
-        Log.i(TAG, "flashing screen");
-        final ImageView flash = findViewById(R.id.imageViewFlash);
-        // create animator to make flash pleasant
-        ValueAnimator flashAnimator = ValueAnimator.ofInt(255,0);
-        flashAnimator.setInterpolator(new AccelerateInterpolator());
-        flashAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                // update the imageview's alpha to let it fade out
-                flash.setImageAlpha((int) animation.getAnimatedValue());
-            }
-        });
-        flashAnimator.addListener(new Animator.AnimatorListener() {
-            @Override
-            public void onAnimationStart(Animator animation) {
-                // make it visible when it starts
-                flash.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                // make it gone to save resources when the animation is over
-                flash.setVisibility(View.GONE);
-            }
-
-            @Override
-            public void onAnimationCancel(Animator animation) {
-                flash.setVisibility(View.GONE);
-            }
-
-            @Override
-            public void onAnimationRepeat(Animator animation) {
-            }
-        });
-        // the duration can be tuned
-        flashAnimator.setDuration(700);
-        // animate it
-        flashAnimator.start();
-    }
-
-    private void openCamera() {
-        // open camera by getting camera manager and opening the first camera
-        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-            cameraId = manager.getCameraIdList()[0];
+            // Copy into temp so OpenCV can load it
+            InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+            File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+            File mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            FileOutputStream os = new FileOutputStream(mCascadeFile);
 
-            if (ContextCompat.checkSelfPermission(MainActivity.this,
-                    Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                requestCameraPermission();
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
             }
-            else {
-                manager.openCamera(cameraId, stateCallBack, null);
-            }
+            is.close();
+            os.close();
+
+            //cascade classifier
+            cascadeClassifier = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+        } catch (Exception e) {
+            Log.e("OpenCVActivity", "Error loading cascade", e);
         }
-        catch (CameraAccessException e) {
-            // if there was a problem accessing the camera, let the user know
-            e.printStackTrace();
-            Toast.makeText(getApplicationContext(),"Error opening camera.",Toast.LENGTH_SHORT).show();
-        }
-        Log.i(TAG, "Camera opened");
+
+        //display
+        openCvCameraView.enableView();
     }
-
-    private void closeCamera() {
-        // close the camera, if one is open
-        if (cameraDevice != null) {
-            cameraDevice.close();
-            cameraDevice = null;
-        }
-        Log.i(TAG, "Camera closed");
-    }
-
-    private void requestCameraPermission(){
-        if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)){
-
-            new AlertDialog.Builder(this)
-                    .setTitle("Permission needed")
-                    .setMessage("This permission is needed for the app")
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
-                        }
-                    })
-                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    })
-                    .create().show();
-
-        } else{
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
-        }
-    }
-
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if(requestCode == CAMERA_PERMISSION_CODE){
-            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
-            }
-            else{
-                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
 
-        Button buttonRequest = findViewById(R.id.button);
-        buttonRequest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                takePhoto();
-            }
-        });
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        openCvCameraView = new JavaCameraView(this, -1);
+        setContentView(openCvCameraView);
+        openCvCameraView.setCvCameraViewListener(this);
     }
 
     @Override
-    protected void onResume() {
+    public void onResume()
+    {
         super.onResume();
-        openCamera(); // open camera whenever the app is opened
+        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+    }
+    private CameraBridgeViewBase mOpenCvCameraView;
+
+
+    @Override
+    public void onPause()
+    {
+        super.onPause();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
+    }
+    public void onDestroy() {
+        super.onDestroy();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
     }
 
     @Override
-    protected void onPause() {
-        closeCamera(); // close camera whenever the app is no longer open
-        super.onPause();
+    public void onCameraViewStarted(int width, int height) {
+        grayscaleImage = new Mat(height, width, CvType.CV_8UC4);
+
+        // The faces will be a 20% of the height of the screen
+        absoluteFaceSize = (int) (height * 0.2);
+    }
+    @Override
+    public void onCameraViewStopped() {
+    }
+
+    @Override
+    public Mat onCameraFrame(Mat aInputFrame) {
+        // Create a grayscale image
+        Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
+
+        MatOfRect faces = new MatOfRect();
+
+        // Use the classifier to detect faces
+        if (cascadeClassifier != null) {
+            cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
+                    new Size(absoluteFaceSize, absoluteFaceSize), new Size());
+        }
+
+        // If any faces found, draw a rectangle around it
+        Rect[] facesArray = faces.toArray();
+        for (int i = 0; i <facesArray.length; i++)
+            Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
+
+        return aInputFrame;
     }
 }
