@@ -58,7 +58,9 @@ public class MainActivity extends AppCompatActivity {
     private final CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
+
             cameraDevice = camera;
+            createCameraPreview();
         }
 
         @Override
@@ -233,7 +235,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        openCamera(); // open camera whenever the app is opened
+        if (textureView.isAvailable()) {
+            openCamera();
+        } else {
+            textureView.setSurfaceTextureListener(textureListener);
+        }
     }
 
     @Override
