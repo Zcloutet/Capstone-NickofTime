@@ -98,7 +98,34 @@ public class MainActivity extends AppCompatActivity {
                 // make it visible when it starts
                 flash.setVisibility(View.VISIBLE);
             }
-
+            protected void createCameraPreview() {
+                try {
+                    SurfaceTexture texture = textureView.getSurfaceTexture();
+                    assert texture != null;
+                    texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
+                    Surface surface = new Surface(texture);
+                    captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+                    captureRequestBuilder.addTarget(surface);
+                    cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback(){
+                        @Override
+                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                            //The camera is already closed
+                            if (null == cameraDevice) {
+                                return;
+                            }
+                            // When the session is ready, we start displaying the preview.
+                            cameraCaptureSessions = cameraCaptureSession;
+                            updatePreview();
+                        }
+                        @Override
+                        public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                            Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
+                        }
+                    }, null);
+                } catch (CameraAccessException e) {
+                    e.printStackTrace();
+                }
+            }
             @Override
             public void onAnimationEnd(Animator animation) {
                 // make it gone to save resources when the animation is over
