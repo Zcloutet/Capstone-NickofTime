@@ -175,6 +175,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
+
+        Button buttonRequest = findViewById(R.id.button);
+        buttonRequest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                takePhoto();
+            }
+        });
     }
 
     @Override
