@@ -1,2 +1,6 @@
 include ':app'
 rootProject.name='Perfect Photo App'
+
+
+
+include ':openCVLibrary349'
