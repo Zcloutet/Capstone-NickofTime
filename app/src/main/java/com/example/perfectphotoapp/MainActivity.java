@@ -6,6 +6,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.SurfaceTexture;
 import android.animation.Animator;
 import android.content.Context;
+import android.hardware.HardwareBuffer;
+import android.media.Image;
 import android.os.Bundle;
 
 import android.util.Log;
@@ -35,12 +37,15 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.os.Handler;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.ImageReader;
+import android.graphics.ImageFormat;
 
 
 import android.hardware.camera2.*;
 
 public class MainActivity extends AppCompatActivity {
     private int CAMERA_PERMISSION_CODE = 1;
+    private int IMAGE_BUFFER_SIZE = 3;
     // variables referring to the camera
     protected String cameraId;
     protected CameraDevice cameraDevice;
@@ -51,6 +56,21 @@ public class MainActivity extends AppCompatActivity {
     // tag for logging
     private static final String TAG = "PerfectPhoto";
     private TextureView textureView;
+
+    private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
+        @Override
+        public void onImageAvailable(ImageReader reader) {
+            Image image = null;
+            try {
+                image = reader.acquireLatestImage();
+                if (image != null) {
+                    image.close();
+                }
+            } catch (Exception e) {
+                Log.w(TAG, e.getMessage());
+            }
+        }
+    };
 
     // stateCallBack for opening cameras
     // not necessarily important to use but rather than make it null, it is here
@@ -125,10 +145,15 @@ public class MainActivity extends AppCompatActivity {
             SurfaceTexture texture = textureView.getSurfaceTexture();
             assert texture != null;
             texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
-            Surface surface = new Surface(texture);
+            Surface textureSurface = new Surface(texture);
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            captureRequestBuilder.addTarget(surface);
-            cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback(){
+            captureRequestBuilder.addTarget(textureSurface);
+
+            ImageReader imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.YUV_420_888, IMAGE_BUFFER_SIZE);
+            Surface imageReaderSurface = imageReader.getSurface();
+            captureRequestBuilder.addTarget(imageReaderSurface);
+
+            cameraDevice.createCaptureSession(Arrays.asList(new Surface[] {textureSurface, imageReaderSurface}), new CameraCaptureSession.StateCallback(){
                 @Override
                 public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
                     //The camera is already closed
