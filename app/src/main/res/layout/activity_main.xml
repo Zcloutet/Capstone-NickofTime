@@ -7,19 +7,6 @@
     android:background="#000000"
     tools:context=".MainActivity">
 
-    <ImageView
-        android:id="@+id/imageViewFlash"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="255"
-        app:srcCompat="@android:color/white"
-        tools:visibility="gone" />
-
-    <com.example.perfectphotoapp.CameraOverlayView
-        android:id="@+id/cameraOverlayView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
     <TextureView
         android:id="@+id/texture"
         android:layout_width="match_parent"
@@ -30,6 +17,11 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <com.example.perfectphotoapp.CameraOverlayView
+        android:id="@+id/cameraOverlayView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <Button
         android:id="@+id/button"
@@ -43,6 +35,14 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.934" />
 
+
+    <ImageView
+        android:id="@+id/imageViewFlash"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="255"
+        app:srcCompat="@android:color/white"
+        tools:visibility="gone" />
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
