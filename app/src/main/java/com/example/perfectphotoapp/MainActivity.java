@@ -31,6 +31,8 @@ import android.view.TextureView;
 import android.util.Size;
 import android.view.Surface;
 import android.hardware.camera2.CaptureRequest;
+
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import android.hardware.camera2.CameraCaptureSession;
@@ -39,9 +41,16 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.graphics.ImageFormat;
-
-
 import android.hardware.camera2.*;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+
+import org.opencv.core.*;
+//import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.objdetect.CascadeClassifier;
 
 public class MainActivity extends AppCompatActivity {
     private int CAMERA_PERMISSION_CODE = 1;
@@ -56,6 +65,10 @@ public class MainActivity extends AppCompatActivity {
     // tag for logging
     private static final String TAG = "PerfectPhoto";
     private TextureView textureView;
+    private CascadeClassifier cascadeClassifier;
+    private Mat grayscaleImage;
+    private int absoluteFaceSize;
+    Mat mYuvMat;
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
@@ -64,6 +77,13 @@ public class MainActivity extends AppCompatActivity {
             try {
                 image = reader.acquireLatestImage();
                 if (image != null) {
+                    Mat mYuvMat = imageToMat(image);
+                    Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+                    grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+                    // The faces will be a 20% of the height of the screen
+                    absoluteFaceSize = (int) (image.getHeight() * 0.20);
+                    Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
+                    //Cascadeframe(bgrMat);
                     image.close();
                 }
             } catch (Exception e) {
@@ -71,7 +91,94 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    private void initializeOpenCVDependencies() {
 
+        try {
+            // Copy the resource into a temp file so OpenCV can load it
+            InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+            File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
+            File mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            FileOutputStream os = new FileOutputStream(mCascadeFile);
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+            is.close();
+            os.close();
+            // Load the cascade classifier
+            cascadeClassifier = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+        } catch (Exception e) {
+            Log.e("OpenCVActivity", "Error loading cascade", e);
+        }
+        // And we are ready to go
+        //openCvCameraView.enableView();
+    }
+    public Mat Cascadeframe(Mat aInputFrame) {
+        // Create a grayscale image
+        Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
+        MatOfRect faces = new MatOfRect();
+        // Use the classifier to de     tect faces
+        if (cascadeClassifier != null) {
+            cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
+                    new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
+        }
+        // If any faces found, draw a rectangle around it
+        //Rect[] facesArray = faces.toArray();
+        //for (int i = 0; i <facesArray.length; i++)
+        //Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
+        return aInputFrame;
+    }
+    public static Mat imageToMat(Image image) {
+        ByteBuffer buffer;
+        int rowStride;
+        int pixelStride;
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int offset = 0;
+
+        Image.Plane[] planes = image.getPlanes();
+        byte[] data = new byte[image.getWidth() * image.getHeight() * ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8];
+        byte[] rowData = new byte[planes[0].getRowStride()];
+
+        for (int i = 0; i < planes.length; i++) {
+            buffer = planes[i].getBuffer();
+            rowStride = planes[i].getRowStride();
+            pixelStride = planes[i].getPixelStride();
+            int w = (i == 0) ? width : width / 2;
+            int h = (i == 0) ? height : height / 2;
+            for (int row = 0; row < h; row++) {
+                int bytesPerPixel = ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8;
+                if (pixelStride == bytesPerPixel) {
+                    int length = w * bytesPerPixel;
+                    buffer.get(data, offset, length);
+
+                    if (h - row != 1) {
+                        buffer.position(buffer.position() + rowStride - length);
+                    }
+                    offset += length;
+                } else {
+
+
+                    if (h - row == 1) {
+                        buffer.get(rowData, 0, width - pixelStride + 1);
+                    } else {
+                        buffer.get(rowData, 0, rowStride);
+                    }
+
+                    for (int col = 0; col < w; col++) {
+                        data[offset++] = rowData[col * pixelStride];
+                    }
+                }
+            }
+        }
+
+        Mat mat = new Mat(height + height / 2, width, CvType.CV_8UC1);
+        mat.put(0, 0, data);
+
+        return mat;
+    }
     // stateCallBack for opening cameras
     // not necessarily important to use but rather than make it null, it is here
     private final CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
