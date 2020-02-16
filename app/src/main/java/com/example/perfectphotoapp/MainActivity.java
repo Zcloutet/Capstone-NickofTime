@@ -92,7 +92,6 @@ public class MainActivity extends AppCompatActivity {
         }
     };
     private void initializeOpenCVDependencies() {
-
         try {
             // Copy the resource into a temp file so OpenCV can load it
             InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
@@ -119,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         // Create a grayscale image
         Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
         MatOfRect faces = new MatOfRect();
-        // Use the classifier to de     tect faces
+        // Use the classifier to detect faces
         if (cascadeClassifier != null) {
             cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
