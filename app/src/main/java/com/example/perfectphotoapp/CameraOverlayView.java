@@ -11,7 +11,7 @@ import android.view.View;
 public class CameraOverlayView extends View {
     Paint paint;
 
-    Rect[] boxes;
+    Face[] faces;
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -26,19 +26,15 @@ public class CameraOverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if (boxes != null) {
-            for (int i=0; i<boxes.length; i++) {
-                canvas.drawRect(boxes[i], paint);
+        if (faces != null) {
+            for (int i=0; i<faces.length; i++) {
+                canvas.drawRect(faces[i].left, faces[i].top, faces[i].right, faces[i].bottom, paint);
             }
         }
     }
 
-    public void updateFaces() {
-        boxes = new Rect[2];
-
-        boxes[0] = new Rect(100,100,300,400);
-        boxes[1] = new Rect(200,200,600,500);
-
+    public void updateFaces(Face[] faces) {
+        this.faces = faces;
         invalidate(); // makes it redraw the canvas
     }
 }

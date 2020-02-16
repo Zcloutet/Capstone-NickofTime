@@ -68,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private CascadeClassifier cascadeClassifier;
     private Mat grayscaleImage;
     private int absoluteFaceSize;
+    private ImageReader imageReader;
     Mat mYuvMat;
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
@@ -83,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
                     // The faces will be a 20% of the height of the screen
                     absoluteFaceSize = (int) (image.getHeight() * 0.20);
                     Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                    //Cascadeframe(bgrMat);
+                    Cascadeframe(bgrMat);
                     image.close();
                 }
             } catch (Exception e) {
@@ -125,8 +126,13 @@ public class MainActivity extends AppCompatActivity {
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
         // If any faces found, draw a rectangle around it
-        //Rect[] facesArray = faces.toArray();
-        //for (int i = 0; i <facesArray.length; i++)
+        Rect[] rectFacesArray = faces.toArray();
+        Face[] facesArray = new Face[rectFacesArray.length];
+        for (int i = 0; i <rectFacesArray.length; i++) {
+            Rect rectFace = rectFacesArray[i];
+            facesArray[i] = new Face(rectFace.x, rectFace.y, rectFace.x+rectFace.width, rectFace.y+rectFace.height);
+        }
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(facesArray);
         //Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
         return aInputFrame;
     }
@@ -256,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(textureSurface);
 
-            ImageReader imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.YUV_420_888, IMAGE_BUFFER_SIZE);
+            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.YUV_420_888, IMAGE_BUFFER_SIZE);
             Surface imageReaderSurface = imageReader.getSurface();
             captureRequestBuilder.addTarget(imageReaderSurface);
 
@@ -285,7 +291,7 @@ public class MainActivity extends AppCompatActivity {
         // open camera by getting camera manager and opening the first camera
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-            cameraId = manager.getCameraIdList()[0];
+            cameraId = manager.getCameraIdList()[1];
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
@@ -367,8 +373,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
-
-        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces();
         
         textureView = (TextureView) findViewById(R.id.texture);
         assert textureView != null;
