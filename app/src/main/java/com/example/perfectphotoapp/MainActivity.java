@@ -47,6 +47,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.LoaderCallbackInterface;
+import org.opencv.android.OpenCVLoader;
+//import org.opencv.android.
 import org.opencv.core.*;
 //import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
@@ -68,7 +72,22 @@ public class MainActivity extends AppCompatActivity {
     private CascadeClassifier cascadeClassifier;
     private Mat grayscaleImage;
     private int absoluteFaceSize;
+    private ImageReader imageReader;
     Mat mYuvMat;
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                    initializeOpenCVDependencies();
+                    break;
+                default:
+                    super.onManagerConnected(status);
+                    break;
+            }
+        }
+    };
 
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
@@ -83,7 +102,8 @@ public class MainActivity extends AppCompatActivity {
                     // The faces will be a 20% of the height of the screen
                     absoluteFaceSize = (int) (image.getHeight() * 0.20);
                     Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                    //Cascadeframe(bgrMat);
+                    Face[] faces = Cascadeframe(bgrMat);
+                    ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
                     image.close();
                 }
             } catch (Exception e) {
@@ -91,8 +111,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-    private void initializeOpenCVDependencies() {
 
+    private void initializeOpenCVDependencies() {
         try {
             // Copy the resource into a temp file so OpenCV can load it
             InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
@@ -115,20 +135,25 @@ public class MainActivity extends AppCompatActivity {
         // And we are ready to go
         //openCvCameraView.enableView();
     }
-    public Mat Cascadeframe(Mat aInputFrame) {
+    public Face[] Cascadeframe(Mat aInputFrame) {
         // Create a grayscale image
         Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
         MatOfRect faces = new MatOfRect();
-        // Use the classifier to de     tect faces
+        // Use the classifier to detect faces
+
         if (cascadeClassifier != null) {
             cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
         // If any faces found, draw a rectangle around it
-        //Rect[] facesArray = faces.toArray();
-        //for (int i = 0; i <facesArray.length; i++)
+        Rect[] rectFacesArray = faces.toArray();
+        Face[] facesArray = new Face[rectFacesArray.length];
+        for (int i = 0; i <rectFacesArray.length; i++) {
+            Rect rectFace = rectFacesArray[i];
+            facesArray[i] = new Face(rectFace.x, rectFace.y, (rectFace.x+rectFace.width), (rectFace.y+rectFace.height));
+        }
         //Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
-        return aInputFrame;
+        return facesArray;
     }
     public static Mat imageToMat(Image image) {
         ByteBuffer buffer;
@@ -256,7 +281,8 @@ public class MainActivity extends AppCompatActivity {
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(textureSurface);
 
-            ImageReader imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.YUV_420_888, IMAGE_BUFFER_SIZE);
+            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.YUV_420_888, IMAGE_BUFFER_SIZE);
+            imageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
             Surface imageReaderSurface = imageReader.getSurface();
             captureRequestBuilder.addTarget(imageReaderSurface);
 
@@ -367,8 +393,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
-
-        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces();
         
         textureView = (TextureView) findViewById(R.id.texture);
         assert textureView != null;
@@ -403,6 +427,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        OpenCVLoader.initDebug();
+        initializeOpenCVDependencies();
+        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
         if (textureView.isAvailable()) {
             openCamera();
         } else {
