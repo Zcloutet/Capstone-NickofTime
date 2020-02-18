@@ -10,24 +10,41 @@ import android.util.Log;
 import android.view.View;
 
 public class CameraOverlayView extends View {
-    final String TAG = "perfectphoto overlay";
+    // constsants
+    private static final String TAG = "perfectphoto overlay";
+    private static final int STROKE_WIDTH = 5;
 
+    // canvas and image dimensions
     private int w;
     private int h;
     private int imagew;
     private int imageh;
 
-    Paint paint;
+    // paint options
+    private Paint redPaint;
+    private Paint yellowPaint;
+    private Paint greenPaint;
 
-    Face[] faces;
+    // faces
+    private Face[] faces;
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        paint = new Paint();
-        paint.setColor(Color.RED);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(5);
+        redPaint = new Paint();
+        redPaint.setColor(Color.RED);
+        redPaint.setStyle(Paint.Style.STROKE);
+        redPaint.setStrokeWidth(STROKE_WIDTH);
+
+        yellowPaint = new Paint();
+        yellowPaint.setColor(Color.YELLOW);
+        yellowPaint.setStyle(Paint.Style.STROKE);
+        yellowPaint.setStrokeWidth(STROKE_WIDTH);
+
+        greenPaint = new Paint();
+        greenPaint.setColor(Color.RED);
+        greenPaint.setStyle(Paint.Style.STROKE);
+        greenPaint.setStrokeWidth(STROKE_WIDTH);
     }
 
     @Override
@@ -44,7 +61,7 @@ public class CameraOverlayView extends View {
 
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
-                canvas.drawRect(faces[i].top*w/imageh, faces[i].left*h/imagew, faces[i].bottom*w/imageh, faces[i].right*h/imagew, paint);
+                canvas.drawRect(faces[i].top*w/imageh, faces[i].left*h/imagew, faces[i].bottom*w/imageh, faces[i].right*h/imagew, redPaint);
             }
         }
     }
