@@ -44,7 +44,7 @@ public class CameraOverlayView extends View {
 
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
-                canvas.drawRect(faces[i].left*w/imagew, faces[i].top*h/imageh, faces[i].right*w/imagew, faces[i].bottom*h/imageh, paint);
+                canvas.drawRect(faces[i].top*w/imageh, faces[i].left*h/imagew, faces[i].bottom*w/imageh, faces[i].right*h/imagew, paint);
             }
         }
     }
