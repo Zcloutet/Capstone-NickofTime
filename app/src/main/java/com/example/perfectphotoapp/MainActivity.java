@@ -59,6 +59,7 @@ import org.opencv.objdetect.CascadeClassifier;
 public class MainActivity extends AppCompatActivity {
     private int CAMERA_PERMISSION_CODE = 1;
     private int IMAGE_BUFFER_SIZE = 3;
+    private int cameraIndex = 0;
     // variables referring to the camera
     protected String cameraId;
     protected CameraDevice cameraDevice;
@@ -307,12 +308,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void openCamera() {
+    private void openCamera(int cameraIndex) {
         // open camera by getting camera manager and opening the first camera
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-            cameraId = manager.getCameraIdList()[1];
+            cameraId = manager.getCameraIdList()[cameraIndex];
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            if(characteristics == null){
+                throw new NullPointerException("No camera with id "+ cameraIndex);
+            }
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
 
@@ -404,12 +408,25 @@ public class MainActivity extends AppCompatActivity {
                 takePhoto();
             }
         });
+        Button switchButton = findViewById(R.id.switchButton);
+        switchButton.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                Toast.makeText(MainActivity.this, "Switch camera", Toast.LENGTH_SHORT).show();
+                if(cameraIndex == 1){
+                    cameraIndex = 0;
+                }else{
+                    cameraIndex = 1;
+                }
+                closeCamera();
+                openCamera(cameraIndex);
+            }
+        });
     }
     TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
             //open your camera here
-            openCamera();
+            openCamera(cameraIndex);
         }
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
@@ -431,7 +448,7 @@ public class MainActivity extends AppCompatActivity {
         initializeOpenCVDependencies();
         //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
         if (textureView.isAvailable()) {
-            openCamera();
+            openCamera(cameraIndex);
         } else {
             textureView.setSurfaceTextureListener(textureListener);
         }
