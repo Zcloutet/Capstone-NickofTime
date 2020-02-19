@@ -57,8 +57,8 @@ import org.opencv.objdetect.CascadeClassifier;
 public class MainActivity extends AppCompatActivity {
     // constants
     private static final int CAMERA_PERMISSION_CODE = 1;
-    private static final int IMAGE_BUFFER_SIZE = 3;
-    private static final int FACE_MARGIN = 25;
+    private static final int IMAGE_BUFFER_SIZE = 1;
+    private static final double FACE_MARGIN_MULTIPLIER = 0.25;
     private static final String TAG = "PerfectPhoto"; // log tag
 
     // variables referring to the camera
@@ -129,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
+            ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION));
 
             if (ContextCompat.checkSelfPermission(MainActivity.this,
                     Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -363,10 +364,11 @@ public class MainActivity extends AppCompatActivity {
                     Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
                     Face[] faces = Cascadeframe(bgrMat);
                     ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
-                    image.close();
                 }
             } catch (Exception e) {
                 Log.w(TAG, e.getMessage());
+            } finally {
+                image.close();
             }
         }
     };
@@ -411,7 +413,7 @@ public class MainActivity extends AppCompatActivity {
         Face[] facesArray = new Face[rectFacesArray.length];
         for (int i = 0; i <rectFacesArray.length; i++) {
             Rect rectFace = rectFacesArray[i];
-            facesArray[i] = new Face(rectFace.x-FACE_MARGIN, rectFace.y-FACE_MARGIN, (rectFace.x+rectFace.width+FACE_MARGIN), (rectFace.y+rectFace.height+FACE_MARGIN));
+            facesArray[i] = new Face((int) (rectFace.x-rectFace.width*FACE_MARGIN_MULTIPLIER), (int) (rectFace.y-rectFace.height*FACE_MARGIN_MULTIPLIER), (int) (rectFace.x+rectFace.width*(1+FACE_MARGIN_MULTIPLIER)), (int) (rectFace.y+rectFace.height*(1+FACE_MARGIN_MULTIPLIER)));
         }
         //Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
         return facesArray;
