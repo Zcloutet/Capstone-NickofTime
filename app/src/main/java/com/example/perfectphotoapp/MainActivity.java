@@ -60,8 +60,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int IMAGE_BUFFER_SIZE = 1;
     private static final double FACE_MARGIN_MULTIPLIER = 0.25;
     private static final String TAG = "PerfectPhoto"; // log tag
-
+    
     // variables referring to the camera
+    private int cameraIndex = 0;
     protected String cameraId;
     protected CameraDevice cameraDevice;
     private Size imageDimension;
@@ -76,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     // APP HANDLING
-
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -95,6 +96,21 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 takePhoto();
+            }
+        });
+        
+        // switch camera button
+        Button switchButton = findViewById(R.id.switchButton);
+        switchButton.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                Toast.makeText(MainActivity.this, "Switch camera", Toast.LENGTH_SHORT).show();
+                if(cameraIndex == 1){
+                    cameraIndex = 0;
+                }else{
+                    cameraIndex = 1;
+                }
+                closeCamera();
+                openCamera(cameraIndex);
             }
         });
     }
@@ -121,15 +137,17 @@ public class MainActivity extends AppCompatActivity {
 
     // CAMERA HANDLING
 
-    private void openCamera() {
+    private void openCamera(int cameraIndex) {
         // open camera by getting camera manager and opening the first camera
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-            cameraId = manager.getCameraIdList()[1];
+            cameraId = manager.getCameraIdList()[cameraIndex];
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            if(characteristics == null){
+                throw new NullPointerException("No camera with id "+ cameraIndex);
+            }
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
-            ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION));
 
             if (ContextCompat.checkSelfPermission(MainActivity.this,
                     Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -176,7 +194,6 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void takePhoto() {
-
         // play shutter sound
         Log.i(TAG, "playing shutter sound");
         MediaActionSound mediaActionSound = new MediaActionSound();
@@ -300,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
+    
     protected void updatePreview() {
         if(null == cameraDevice) {
             Log.e(TAG, "updatePreview error, return");
@@ -312,12 +329,12 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
+    
     TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
             //open your camera here
-            openCamera();
+            openCamera(cameraIndex);
         }
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
