@@ -41,6 +41,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.graphics.ImageFormat;
+import android.graphics.Bitmap;
 import android.hardware.camera2.*;
 
 import java.io.File;
@@ -52,6 +53,7 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 //import org.opencv.android.
 import org.opencv.core.*;
+import org.opencv.imgcodecs.Imgcodecs;
 //import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
@@ -105,6 +107,8 @@ public class MainActivity extends AppCompatActivity {
                     Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
                     Face[] faces = Cascadeframe(bgrMat);
                     ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
+                    //Log.i(TAG, "Height" +String.valueOf(image.getHeight()));
+                    //Log.i(TAG, "Width" +String.valueOf(image.getWidth()));
                     image.close();
                 }
             } catch (Exception e) {
@@ -112,7 +116,24 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    /*
+    private Mat StoreFaces(Face[] faces)
+    {
+        Mat source = face
 
+        // Setup a rectangle to define your region of interest
+        //Rect myROI(10, 10, 100, 100);
+
+        // Crop the full image to that image contained by the rectangle myROI
+        // Note that this doesn't copy the data
+        //Mat croppedRef(source, myROI);
+
+        Mat cropped;
+        // Copy the data into new matrix
+        croppedRef.copyTo(cropped);
+    }
+
+     */
     private void initializeOpenCVDependencies() {
         try {
             // Copy the resource into a temp file so OpenCV can load it
@@ -146,12 +167,17 @@ public class MainActivity extends AppCompatActivity {
             cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
+        //Mat croppedImage = new Mat();
         // If any faces found, draw a rectangle around it
         Rect[] rectFacesArray = faces.toArray();
         Face[] facesArray = new Face[rectFacesArray.length];
         for (int i = 0; i <rectFacesArray.length; i++) {
             Rect rectFace = rectFacesArray[i];
             facesArray[i] = new Face(rectFace.x, rectFace.y, (rectFace.x+rectFace.width), (rectFace.y+rectFace.height));
+            //crops face by making a submat which is stored in face instance
+            facesArray[i].Crop(aInputFrame,rectFace);
+            //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
+            //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
         }
         //Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
         return facesArray;
