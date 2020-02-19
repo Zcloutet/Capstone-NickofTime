@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
+import android.widget.ImageButton;
 import android.widget.Toast;
 import android.widget.ImageView;
 import android.media.MediaActionSound;
@@ -427,14 +428,14 @@ public class MainActivity extends AppCompatActivity {
         textureView = (TextureView) findViewById(R.id.texture);
         assert textureView != null;
         textureView.setSurfaceTextureListener(textureListener);
-        Button buttonRequest = findViewById(R.id.button);
+        ImageButton buttonRequest = findViewById(R.id.button);
         buttonRequest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 takePhoto();
             }
         });
-        Button switchButton = findViewById(R.id.switchButton);
+        ImageButton switchButton = findViewById(R.id.switchButton);
         switchButton.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
                 Toast.makeText(MainActivity.this, "Switch camera", Toast.LENGTH_SHORT).show();
