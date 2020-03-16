@@ -124,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         initializeOpenCVDependencies();
         //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
         if (textureView.isAvailable()) {
-            openCamera();
+            openCamera(cameraIndex);
         } else {
             textureView.setSurfaceTextureListener(textureListener);
         }
@@ -151,6 +151,9 @@ public class MainActivity extends AppCompatActivity {
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
 
+
+            ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION));
+            
             if (ContextCompat.checkSelfPermission(MainActivity.this,
                     Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 requestCameraPermission();

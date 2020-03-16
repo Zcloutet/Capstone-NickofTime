@@ -3,7 +3,6 @@ package com.example.perfectphotoapp;
 import android.graphics.Rect;
 
 import org.opencv.core.Mat;
-import org.opencv.core.Rect;
 
 public class Face {
     // values boxing in the face
@@ -21,12 +20,10 @@ public class Face {
     }
 
     //crop face
-    public void Crop(Mat aInputFrame, Rect rectFace )
+    public void Crop(Mat aInputFrame, org.opencv.core.Rect rectFace ) //opencv Rect cannot be imported because android.graphics.Rect is already imported
     {
         //this.croppedimg = aInputFrame.submat(rectFace);
         this.croppedimg = new Mat(aInputFrame,rectFace);
-
-    }
 
     }
 
