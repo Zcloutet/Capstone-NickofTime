@@ -6,10 +6,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.SurfaceTexture;
 import android.animation.Animator;
 import android.content.Context;
-import android.hardware.HardwareBuffer;
 import android.media.Image;
 import android.os.Bundle;
 
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
@@ -35,9 +35,7 @@ import android.hardware.camera2.CaptureRequest;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.List;
 import android.hardware.camera2.CameraCaptureSession;
-import android.os.Handler;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
@@ -60,24 +58,304 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
 public class MainActivity extends AppCompatActivity {
-    private int CAMERA_PERMISSION_CODE = 1;
-    private int IMAGE_BUFFER_SIZE = 3;
-    private int cameraIndex = 0;
+    // constants
+    private static final int CAMERA_PERMISSION_CODE = 1;
+    private static final int IMAGE_BUFFER_SIZE = 1;
+    private static final double FACE_MARGIN_MULTIPLIER = 0.25;
+    private static final String TAG = "PerfectPhoto"; // log tag
+
     // variables referring to the camera
+    private int cameraIndex = 0;
     protected String cameraId;
     protected CameraDevice cameraDevice;
     private Size imageDimension;
     protected CaptureRequest.Builder captureRequestBuilder;
     protected CameraCaptureSession cameraCaptureSessions;
     private Handler mBackgroundHandler;
-    // tag for logging
-    private static final String TAG = "PerfectPhoto";
     private TextureView textureView;
     private CascadeClassifier cascadeClassifier;
     private Mat grayscaleImage;
     private int absoluteFaceSize;
     private ImageReader imageReader;
-    Mat mYuvMat;
+
+
+    // APP HANDLING
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
+
+        // textureView
+        textureView = (TextureView) findViewById(R.id.texture);
+        assert textureView != null;
+        textureView.setSurfaceTextureListener(textureListener);
+
+        // take photo button
+        ImageButton buttonRequest = findViewById(R.id.button);
+        buttonRequest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                takePhoto();
+            }
+        });
+
+        // switch camera button
+        ImageButton switchButton = findViewById(R.id.switchButton);
+        switchButton.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                if(cameraIndex == 1){
+                    cameraIndex = 0;
+                }else{
+                    cameraIndex = 1;
+                }
+                closeCamera();
+                openCamera(cameraIndex);
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        OpenCVLoader.initDebug();
+        initializeOpenCVDependencies();
+        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+        if (textureView.isAvailable()) {
+            openCamera(cameraIndex);
+        } else {
+            textureView.setSurfaceTextureListener(textureListener);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        closeCamera(); // close camera whenever the app is no longer open
+        super.onPause();
+    }
+
+
+    // CAMERA HANDLING
+
+    private void openCamera(int cameraIndex) {
+        // open camera by getting camera manager and opening the first camera
+        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        try {
+            cameraId = manager.getCameraIdList()[cameraIndex];
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            if(characteristics == null){
+                throw new NullPointerException("No camera with id "+ cameraIndex);
+            }
+            StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
+
+
+            ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION));
+            
+            if (ContextCompat.checkSelfPermission(MainActivity.this,
+                    Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                requestCameraPermission();
+            }
+            else {
+                manager.openCamera(cameraId, stateCallBack, null);
+            }
+        }
+        catch (CameraAccessException e) {
+            // if there was a problem accessing the camera, let the user know
+            e.printStackTrace();
+            Toast.makeText(getApplicationContext(),"Error opening camera.",Toast.LENGTH_SHORT).show();
+        }
+        Log.i(TAG, "Camera opened");
+    }
+
+    private void closeCamera() {
+        // close the camera, if one is open
+        if (cameraDevice != null) {
+            cameraDevice.close();
+            cameraDevice = null;
+        }
+        Log.i(TAG, "Camera closed");
+    }
+
+    // stateCallBack for opening cameras
+    private final CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
+        @Override
+        public void onOpened(@NonNull CameraDevice camera) {
+            cameraDevice = camera;
+            createCameraPreview();
+        }
+
+        @Override
+        public void onDisconnected(@NonNull CameraDevice camera) {
+            cameraDevice.close();
+        }
+
+        @Override
+        public void onError(@NonNull CameraDevice camera, int error) {
+            cameraDevice.close();
+        }
+    };
+
+    private void takePhoto() {
+        // play shutter sound
+        Log.i(TAG, "playing shutter sound");
+        MediaActionSound mediaActionSound = new MediaActionSound();
+        mediaActionSound.play(MediaActionSound.SHUTTER_CLICK);
+
+        // flash screen
+        Log.i(TAG, "flashing screen");
+        final ImageView flash = findViewById(R.id.imageViewFlash);
+        // create animator to make flash pleasant
+        ValueAnimator flashAnimator = ValueAnimator.ofInt(255,0);
+        flashAnimator.setInterpolator(new AccelerateInterpolator());
+        flashAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                // update the imageview's alpha to let it fade out
+                flash.setImageAlpha((int) animation.getAnimatedValue());
+            }
+        });
+        flashAnimator.addListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+                // make it visible when it starts
+                flash.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                // make it gone to save resources when the animation is over
+                flash.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                flash.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+            }
+        });
+        // the duration can be tuned
+        flashAnimator.setDuration(700);
+        // animate it
+        flashAnimator.start();
+    }
+
+
+    // PERMISSION HANDLING
+
+    private void requestCameraPermission(){
+        if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)){
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Permission needed")
+                    .setMessage("This permission is needed for the app")
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
+                        }
+                    })
+                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    })
+                    .create().show();
+
+        } else{
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if(requestCode == CAMERA_PERMISSION_CODE){
+            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
+            }
+            else{
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+
+    // CAMERA PREVIEW
+
+    protected void createCameraPreview() {
+        try {
+            SurfaceTexture texture = textureView.getSurfaceTexture();
+            assert texture != null;
+            texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
+            Surface textureSurface = new Surface(texture);
+            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            captureRequestBuilder.addTarget(textureSurface);
+
+            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.YUV_420_888, IMAGE_BUFFER_SIZE);
+            imageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
+            Surface imageReaderSurface = imageReader.getSurface();
+            captureRequestBuilder.addTarget(imageReaderSurface);
+
+            cameraDevice.createCaptureSession(Arrays.asList(new Surface[] {textureSurface, imageReaderSurface}), new CameraCaptureSession.StateCallback(){
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                    //The camera is already closed
+                    if (null == cameraDevice) {
+                        return;
+                    }
+                    // When the session is ready, we start displaying the preview.
+                    cameraCaptureSessions = cameraCaptureSession;
+                    updatePreview();
+                }
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                    Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
+                }
+            }, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void updatePreview() {
+        if(null == cameraDevice) {
+            Log.e(TAG, "updatePreview error, return");
+        }
+        captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+        try {
+            cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+            //open your camera here
+            openCamera(cameraIndex);
+        }
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            // Transform you image captured size according to the surface width and height
+        }
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            return false;
+        }
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+        }
+    };
+
+
+    // OPENCV FACIAL RECOGNITION
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -108,33 +386,15 @@ public class MainActivity extends AppCompatActivity {
                     Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
                     Face[] faces = Cascadeframe(bgrMat);
                     ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
-                    //Log.i(TAG, "Height" +String.valueOf(image.getHeight()));
-                    //Log.i(TAG, "Width" +String.valueOf(image.getWidth()));
-                    image.close();
                 }
             } catch (Exception e) {
                 Log.w(TAG, e.getMessage());
+            } finally {
+                image.close();
             }
         }
     };
-    /*
-    private Mat StoreFaces(Face[] faces)
-    {
-        Mat source = face
 
-        // Setup a rectangle to define your region of interest
-        //Rect myROI(10, 10, 100, 100);
-
-        // Crop the full image to that image contained by the rectangle myROI
-        // Note that this doesn't copy the data
-        //Mat croppedRef(source, myROI);
-
-        Mat cropped;
-        // Copy the data into new matrix
-        croppedRef.copyTo(cropped);
-    }
-
-     */
     private void initializeOpenCVDependencies() {
         try {
             // Copy the resource into a temp file so OpenCV can load it
@@ -158,31 +418,52 @@ public class MainActivity extends AppCompatActivity {
         // And we are ready to go
         //openCvCameraView.enableView();
     }
+
     public Face[] Cascadeframe(Mat aInputFrame) {
         // Create a grayscale image
         Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
         MatOfRect faces = new MatOfRect();
+
         // Use the classifier to detect faces
 
         if (cascadeClassifier != null) {
             cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
-        //Mat croppedImage = new Mat();
         // If any faces found, draw a rectangle around it
         Rect[] rectFacesArray = faces.toArray();
         Face[] facesArray = new Face[rectFacesArray.length];
         for (int i = 0; i <rectFacesArray.length; i++) {
             Rect rectFace = rectFacesArray[i];
-            facesArray[i] = new Face(rectFace.x, rectFace.y, (rectFace.x+rectFace.width), (rectFace.y+rectFace.height));
+            facesArray[i] = new Face((int) (rectFace.x-rectFace.width*FACE_MARGIN_MULTIPLIER), (int) (rectFace.y-rectFace.height*FACE_MARGIN_MULTIPLIER), (int) (rectFace.x+rectFace.width*(1+FACE_MARGIN_MULTIPLIER)), (int) (rectFace.y+rectFace.height*(1+FACE_MARGIN_MULTIPLIER)));
+
             //crops face by making a submat which is stored in face instance
             facesArray[i].Crop(aInputFrame,rectFace);
             //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
             //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
         }
-        //Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
         return facesArray;
     }
+
+    /*
+    private Mat StoreFaces(Face[] faces)
+    {
+        Mat source = face
+
+        // Setup a rectangle to define your region of interest
+        //Rect myROI(10, 10, 100, 100);
+
+        // Crop the full image to that image contained by the rectangle myROI
+        // Note that this doesn't copy the data
+        //Mat croppedRef(source, myROI);
+
+        Mat cropped;
+        // Copy the data into new matrix
+        croppedRef.copyTo(cropped);
+    }
+
+     */
+
     public static Mat imageToMat(Image image) {
         ByteBuffer buffer;
         int rowStride;
@@ -231,259 +512,5 @@ public class MainActivity extends AppCompatActivity {
         mat.put(0, 0, data);
 
         return mat;
-    }
-    // stateCallBack for opening cameras
-    // not necessarily important to use but rather than make it null, it is here
-    private final CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
-        @Override
-        public void onOpened(@NonNull CameraDevice camera) {
-            cameraDevice = camera;
-            createCameraPreview();
-        }
-
-        @Override
-        public void onDisconnected(@NonNull CameraDevice camera) {
-            cameraDevice.close();
-        }
-
-        @Override
-        public void onError(@NonNull CameraDevice camera, int error) {
-            cameraDevice.close();
-        }
-    };
-
-    private void takePhoto() {
-
-        // play shutter sound
-        Log.i(TAG, "playing shutter sound");
-        MediaActionSound mediaActionSound = new MediaActionSound();
-        mediaActionSound.play(MediaActionSound.SHUTTER_CLICK);
-
-        // flash screen
-        Log.i(TAG, "flashing screen");
-        final ImageView flash = findViewById(R.id.imageViewFlash);
-        // create animator to make flash pleasant
-        ValueAnimator flashAnimator = ValueAnimator.ofInt(255,0);
-        flashAnimator.setInterpolator(new AccelerateInterpolator());
-        flashAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                // update the imageview's alpha to let it fade out
-                flash.setImageAlpha((int) animation.getAnimatedValue());
-            }
-        });
-        flashAnimator.addListener(new Animator.AnimatorListener() {
-            @Override
-            public void onAnimationStart(Animator animation) {
-                // make it visible when it starts
-                flash.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                // make it gone to save resources when the animation is over
-                flash.setVisibility(View.GONE);
-            }
-
-            @Override
-            public void onAnimationCancel(Animator animation) {
-                flash.setVisibility(View.GONE);
-            }
-
-            @Override
-            public void onAnimationRepeat(Animator animation) {
-            }
-        });
-        // the duration can be tuned
-        flashAnimator.setDuration(700);
-        // animate it
-        flashAnimator.start();
-    }
-
-    protected void createCameraPreview() {
-        try {
-            SurfaceTexture texture = textureView.getSurfaceTexture();
-            assert texture != null;
-            texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
-            Surface textureSurface = new Surface(texture);
-            captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            captureRequestBuilder.addTarget(textureSurface);
-
-            imageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.YUV_420_888, IMAGE_BUFFER_SIZE);
-            imageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
-            Surface imageReaderSurface = imageReader.getSurface();
-            captureRequestBuilder.addTarget(imageReaderSurface);
-
-            cameraDevice.createCaptureSession(Arrays.asList(new Surface[] {textureSurface, imageReaderSurface}), new CameraCaptureSession.StateCallback(){
-                @Override
-                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    //The camera is already closed
-                    if (null == cameraDevice) {
-                        return;
-                    }
-                    // When the session is ready, we start displaying the preview.
-                    cameraCaptureSessions = cameraCaptureSession;
-                    updatePreview();
-                }
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
-                }
-            }, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void openCamera(int cameraIndex) {
-        // open camera by getting camera manager and opening the first camera
-        CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        try {
-            cameraId = manager.getCameraIdList()[cameraIndex];
-            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-            if(characteristics == null){
-                throw new NullPointerException("No camera with id "+ cameraIndex);
-            }
-            StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-            imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
-
-            if (ContextCompat.checkSelfPermission(MainActivity.this,
-                    Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                requestCameraPermission();
-            }
-            else {
-                manager.openCamera(cameraId, stateCallBack, null);
-            }
-        }
-        catch (CameraAccessException e) {
-            // if there was a problem accessing the camera, let the user know
-            e.printStackTrace();
-            Toast.makeText(getApplicationContext(),"Error opening camera.",Toast.LENGTH_SHORT).show();
-        }
-        Log.i(TAG, "Camera opened");
-    }
-    protected void updatePreview() {
-        if(null == cameraDevice) {
-            Log.e(TAG, "updatePreview error, return");
-        }
-        captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-        try {
-            cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-    private void closeCamera() {
-        // close the camera, if one is open
-        if (cameraDevice != null) {
-            cameraDevice.close();
-            cameraDevice = null;
-        }
-        Log.i(TAG, "Camera closed");
-    }
-
-    private void requestCameraPermission(){
-        if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)){
-
-            new AlertDialog.Builder(this)
-                    .setTitle("Permission needed")
-                    .setMessage("This permission is needed for the app")
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
-                        }
-                    })
-                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    })
-                    .create().show();
-
-        } else{
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if(requestCode == CAMERA_PERMISSION_CODE){
-            if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
-            }
-            else{
-                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
-        
-        textureView = (TextureView) findViewById(R.id.texture);
-        assert textureView != null;
-        textureView.setSurfaceTextureListener(textureListener);
-        ImageButton buttonRequest = findViewById(R.id.button);
-        buttonRequest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                takePhoto();
-            }
-        });
-        ImageButton switchButton = findViewById(R.id.switchButton);
-        switchButton.setOnClickListener(new View.OnClickListener(){
-            public void onClick(View v){
-                Toast.makeText(MainActivity.this, "Switch camera", Toast.LENGTH_SHORT).show();
-                if(cameraIndex == 1){
-                    cameraIndex = 0;
-                }else{
-                    cameraIndex = 1;
-                }
-                closeCamera();
-                openCamera(cameraIndex);
-            }
-        });
-    }
-    TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
-        @Override
-        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-            //open your camera here
-            openCamera(cameraIndex);
-        }
-        @Override
-        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-            // Transform you image captured size according to the surface width and height
-        }
-        @Override
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-            return false;
-        }
-        @Override
-        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-        }
-    };
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        OpenCVLoader.initDebug();
-        initializeOpenCVDependencies();
-        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
-        if (textureView.isAvailable()) {
-            openCamera(cameraIndex);
-        } else {
-            textureView.setSurfaceTextureListener(textureListener);
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        closeCamera(); // close camera whenever the app is no longer open
-        super.onPause();
     }
 }
