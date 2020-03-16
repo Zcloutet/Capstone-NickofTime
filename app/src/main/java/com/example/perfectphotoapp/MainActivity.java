@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
+import android.widget.ImageButton;
 import android.widget.Toast;
 import android.widget.ImageView;
 import android.media.MediaActionSound;
@@ -39,6 +40,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.graphics.ImageFormat;
+import android.graphics.Bitmap;
 import android.hardware.camera2.*;
 
 import java.io.File;
@@ -50,6 +52,7 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 //import org.opencv.android.
 import org.opencv.core.*;
+import org.opencv.imgcodecs.Imgcodecs;
 //import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
@@ -60,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int IMAGE_BUFFER_SIZE = 1;
     private static final double FACE_MARGIN_MULTIPLIER = 0.25;
     private static final String TAG = "PerfectPhoto"; // log tag
-    
+
     // variables referring to the camera
     private int cameraIndex = 0;
     protected String cameraId;
@@ -77,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     // APP HANDLING
-    
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -91,19 +94,18 @@ public class MainActivity extends AppCompatActivity {
         textureView.setSurfaceTextureListener(textureListener);
 
         // take photo button
-        Button buttonRequest = findViewById(R.id.button);
+        ImageButton buttonRequest = findViewById(R.id.button);
         buttonRequest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 takePhoto();
             }
         });
-        
+
         // switch camera button
-        Button switchButton = findViewById(R.id.switchButton);
+        ImageButton switchButton = findViewById(R.id.switchButton);
         switchButton.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
-                Toast.makeText(MainActivity.this, "Switch camera", Toast.LENGTH_SHORT).show();
                 if(cameraIndex == 1){
                     cameraIndex = 0;
                 }else{
@@ -317,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-    
+
     protected void updatePreview() {
         if(null == cameraDevice) {
             Log.e(TAG, "updatePreview error, return");
@@ -329,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-    
+
     TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
@@ -431,10 +433,33 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i <rectFacesArray.length; i++) {
             Rect rectFace = rectFacesArray[i];
             facesArray[i] = new Face((int) (rectFace.x-rectFace.width*FACE_MARGIN_MULTIPLIER), (int) (rectFace.y-rectFace.height*FACE_MARGIN_MULTIPLIER), (int) (rectFace.x+rectFace.width*(1+FACE_MARGIN_MULTIPLIER)), (int) (rectFace.y+rectFace.height*(1+FACE_MARGIN_MULTIPLIER)));
+
+            //crops face by making a submat which is stored in face instance
+            facesArray[i].Crop(aInputFrame,rectFace);
+            //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
+            //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
         }
-        //Imgproc.rectangle(aInputFrame, facesArray[i].tl(), facesArray[i].br(), new Scalar(0, 255, 0, 255), 3);
         return facesArray;
     }
+
+    /*
+    private Mat StoreFaces(Face[] faces)
+    {
+        Mat source = face
+
+        // Setup a rectangle to define your region of interest
+        //Rect myROI(10, 10, 100, 100);
+
+        // Crop the full image to that image contained by the rectangle myROI
+        // Note that this doesn't copy the data
+        //Mat croppedRef(source, myROI);
+
+        Mat cropped;
+        // Copy the data into new matrix
+        croppedRef.copyTo(cropped);
+    }
+
+     */
 
     public static Mat imageToMat(Image image) {
         ByteBuffer buffer;
