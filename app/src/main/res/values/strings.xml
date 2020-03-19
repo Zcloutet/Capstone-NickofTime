@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Perfect Photo App</string>
+    <string name="title_activity_gallery">Perfect Photos</string>
 </resources>
