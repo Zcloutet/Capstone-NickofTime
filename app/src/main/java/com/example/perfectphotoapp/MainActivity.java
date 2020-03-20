@@ -73,7 +73,8 @@ public class MainActivity extends AppCompatActivity {
     protected CameraCaptureSession cameraCaptureSessions;
     private Handler mBackgroundHandler;
     private TextureView textureView;
-    private CascadeClassifier cascadeClassifier;
+    private CascadeClassifier faceCascadeClassifier;
+    private CascadeClassifier smileCascadeClassifier;
     private Mat grayscaleImage;
     private int absoluteFaceSize;
     private ImageReader imageReader;
@@ -153,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
 
 
             ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION));
-            
+
             if (ContextCompat.checkSelfPermission(MainActivity.this,
                     Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 requestCameraPermission();
@@ -396,11 +397,19 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void initializeOpenCVDependencies() {
+        faceCascadeClassifier = openCascadeClassifier(R.raw.lbpcascade_frontalface, "lbpcascade_frontalface.xml");
+        smileCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_smile, "haarcascade_smile.xml");
+
+        // And we are ready to go
+        //openCvCameraView.enableView();
+    }
+
+    private CascadeClassifier openCascadeClassifier(int value, String name) {
         try {
             // Copy the resource into a temp file so OpenCV can load it
-            InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+            InputStream is = getResources().openRawResource(value);
             File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-            File mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            File mCascadeFile = new File(cascadeDir, name);
             FileOutputStream os = new FileOutputStream(mCascadeFile);
 
             byte[] buffer = new byte[4096];
@@ -411,12 +420,11 @@ public class MainActivity extends AppCompatActivity {
             is.close();
             os.close();
             // Load the cascade classifier
-            cascadeClassifier = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+            return new CascadeClassifier(mCascadeFile.getAbsolutePath());
         } catch (Exception e) {
             Log.e("OpenCVActivity", "Error loading cascade", e);
+            return null;
         }
-        // And we are ready to go
-        //openCvCameraView.enableView();
     }
 
     public Face[] Cascadeframe(Mat aInputFrame) {
@@ -426,8 +434,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Use the classifier to detect faces
 
-        if (cascadeClassifier != null) {
-            cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
+        if (faceCascadeClassifier != null) {
+            faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
         // If any faces found, draw a rectangle around it
@@ -441,6 +449,23 @@ public class MainActivity extends AppCompatActivity {
             facesArray[i].Crop(aInputFrame,rectFace);
             //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
             //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
+
+
+            // smile detection
+            MatOfRect smile = new MatOfRect();
+
+            if (smileCascadeClassifier != null) {
+                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.1, 10);
+            }
+
+            Log.w("fuck", String.format("%d",smile.toArray().length));
+
+            if (smile.toArray().length == 0) {
+                facesArray[i].smile = false;
+            }
+            else {
+                facesArray[i].smile = true;
+            }
         }
         return facesArray;
     }

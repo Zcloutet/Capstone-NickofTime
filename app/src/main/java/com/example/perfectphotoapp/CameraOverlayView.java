@@ -47,7 +47,7 @@ public class CameraOverlayView extends View {
         yellowPaint.setStrokeWidth(strokeWidth);
 
         greenPaint = new Paint();
-        greenPaint.setColor(Color.RED);
+        greenPaint.setColor(Color.GREEN);
         greenPaint.setStyle(Paint.Style.STROKE);
         greenPaint.setStrokeWidth(strokeWidth);
     }
@@ -67,7 +67,7 @@ public class CameraOverlayView extends View {
 
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
-                canvas.drawRect(imageToCanvas(faces[i].getRect()), redPaint);
+                canvas.drawRect(imageToCanvas(faces[i].getRect()), faces[i].smile ? greenPaint : redPaint);
             }
         }
     }

@@ -11,6 +11,7 @@ public class Face {
     protected int right;
     protected int bottom;
     protected Mat croppedimg;
+    public boolean smile;
 
     public Face(int left, int top, int right, int bottom) {
         this.left = left;
