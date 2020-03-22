@@ -8,6 +8,7 @@ import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -83,7 +84,9 @@ public class MainActivity extends AppCompatActivity {
     private CascadeClassifier cascadeClassifier;
     private Mat grayscaleImage;
     private int absoluteFaceSize;
+    private boolean flash = false;
     private ImageReader opencvImageReader,captureImageReader;
+    private boolean hasFlash ;
 
 //function to save captured image to internal storage
     private String saveToInternalStorage(Image image) throws  Exception{
@@ -121,6 +124,32 @@ public class MainActivity extends AppCompatActivity {
         // take photo button
         ImageButton buttonRequest = findViewById(R.id.button);
         ImageButton gallery = findViewById(R.id.gallery);
+        final ImageButton btnFlash = findViewById(R.id.flash);
+        btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
+
+
+        btnFlash.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(!hasFlash){
+                    Toast.makeText(MainActivity.this, "Flash is not available.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                flash = !flash;
+
+                if(flash){
+
+                    btnFlash.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
+                    Toast.makeText(MainActivity.this, "Flash has been turned on.", Toast.LENGTH_SHORT).show();
+                }else{
+                    btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
+                    Toast.makeText(MainActivity.this, "Flash has been turned off.", Toast.LENGTH_SHORT).show();
+                }
+
+
+            }
+        });
+
         gallery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -220,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
             if(characteristics == null){
                 throw new NullPointerException("No camera with id "+ cameraIndex);
             }
+            hasFlash =  characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
 
@@ -322,6 +352,7 @@ public class MainActivity extends AppCompatActivity {
             captureImage();
         } catch (Exception e) {
             e.printStackTrace();
+            Toast.makeText(this, "Error :"+ e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -330,7 +361,16 @@ public class MainActivity extends AppCompatActivity {
     private void captureImage() throws Exception {
 
         CaptureRequest.Builder request = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+
         request.addTarget(captureImageReader.getSurface());
+        if(hasFlash && flash)
+            request.set(CaptureRequest.FLASH_MODE,CaptureRequest.FLASH_MODE_SINGLE);
+        else{
+            request.set(CaptureRequest.FLASH_MODE,CaptureRequest.FLASH_MODE_OFF);
+
+        }
+
+
 
         cameraCaptureSessions.capture(request.build(),null,mBackgroundHandler);
 
