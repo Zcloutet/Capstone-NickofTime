@@ -3,6 +3,7 @@ package com.example.perfectphotoapp;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
 import android.graphics.SurfaceTexture;
 import android.animation.Animator;
 import android.content.Context;
@@ -11,6 +12,7 @@ import android.media.Image;
 import android.os.Bundle;
 
 import android.util.Log;
+import android.util.SparseIntArray;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.ImageButton;
@@ -77,6 +79,14 @@ public class MainActivity extends AppCompatActivity {
     private Mat grayscaleImage;
     private int absoluteFaceSize;
     private ImageReader imageReader;
+    private ImageView widthCapturer;
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 0);
+        ORIENTATIONS.append(Surface.ROTATION_90, 90);
+        ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
     Mat mYuvMat;
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -239,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
         public void onOpened(@NonNull CameraDevice camera) {
             cameraDevice = camera;
             createCameraPreview();
+            setOrientations(MainActivity.this,cameraIndex);
         }
 
         @Override
@@ -354,6 +365,16 @@ public class MainActivity extends AppCompatActivity {
             else {
                 manager.openCamera(cameraId, stateCallBack, null);
             }
+
+//            int deviceOrientation = getWindowManager().getDefaultDisplay().getRotation();
+//            int totalRotation = sensorToDeviceRotation(characteristics, deviceOrientation);
+//            boolean swapRotation = totalRotation == 90 || totalRotation == 270;
+//            int rotatedWidth = widthCapturer.getWidth();
+//            int rotatedHeight = widthCapturer.getHeight();
+//            if(swapRotation){
+//                rotatedWidth = widthCapturer.getHeight();
+//                rotatedHeight = widthCapturer.getWidth();
+//            }
         }
         catch (CameraAccessException e) {
             // if there was a problem accessing the camera, let the user know
@@ -362,6 +383,39 @@ public class MainActivity extends AppCompatActivity {
         }
         Log.i(TAG, "Camera opened");
     }
+
+    public void setOrientations(Context context, int cameraId){
+        CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+        try{
+            String[] cameraIds = manager.getCameraIdList();
+
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraIds[cameraId]);
+            int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+            int deviceOrientation = getWindowManager().getDefaultDisplay().getRotation();
+            int orientation = (sensorOrientation + deviceOrientation);
+            orientation = (360 - orientation+180) % 360;
+
+//            if(deviceOrientation == 0){
+//                orientation = 90;
+//            }else if(deviceOrientation == 3){
+//                orientation = 180;
+//            }
+            Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^SENSOR ORIENTATION "+sensorOrientation);
+            Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^DEVICE ORIENTATION "+deviceOrientation);
+            Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ORIENTATION "+orientation);
+            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(orientation));
+        }catch(CameraAccessException e){
+            Log.i(TAG, "ERROR ACCESSING CAMERA "+e);
+        }
+
+    }
+    private static int sensorToDeviceRotation(CameraCharacteristics cameraCharacteristics, int deviceOrientation){
+        int sensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        deviceOrientation = ORIENTATIONS.get(deviceOrientation);
+        return (sensorOrientation + deviceOrientation + 360) % 360;
+    }
+
     protected void updatePreview() {
         if(null == cameraDevice) {
             Log.e(TAG, "updatePreview error, return");
@@ -449,6 +503,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
     TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
