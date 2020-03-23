@@ -23,6 +23,7 @@ public class CameraOverlayView extends View {
     private int sensorOrientation;
 
     // paint options
+    private int strokeWidth;
     private Paint redPaint;
     private Paint yellowPaint;
     private Paint greenPaint;
@@ -34,7 +35,7 @@ public class CameraOverlayView extends View {
         super(context, attrs);
 
         float density = getResources().getDisplayMetrics().density;
-        int strokeWidth = (int) (2 * density);
+        strokeWidth = (int) (2 * density);
 
         redPaint = new Paint();
         redPaint.setColor(Color.RED);
@@ -67,7 +68,12 @@ public class CameraOverlayView extends View {
 
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
-                canvas.drawRect(imageToCanvas(faces[i].getRect()), faces[i].smile ? greenPaint : redPaint);
+                Paint paint = faces[i].smile ? greenPaint : redPaint;
+                Rect rect = imageToCanvas(faces[i].getRect());
+
+                canvas.drawRect(rect, paint);
+
+                drawSmiley(rect.centerX(),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
             }
         }
     }
@@ -79,6 +85,19 @@ public class CameraOverlayView extends View {
         this.imageh = imageh;
 
         invalidate(); // makes it redraw the canvas
+    }
+
+    public void drawSmiley(int x, int y, int r, Paint paint, Canvas canvas, boolean smiling) {
+        canvas.drawCircle(x, y, r, paint);
+        canvas.drawCircle(x-r/3, y-r/3, strokeWidth/2, paint);
+        canvas.drawCircle(x+r/3, y-r/3, strokeWidth/2, paint);
+
+        if (smiling) {
+            canvas.drawArc(x-r/2, y-r/2, x+r/2, y+r/2, 30, 120, false, paint);
+        }
+        else {
+            canvas.drawLine(x-r/2,y+r/3, x+r/2, y+r/3, paint);
+        }
     }
 
     // convert a rectangle on the camera image to a rectangle on the canvas

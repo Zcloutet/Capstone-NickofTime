@@ -121,14 +121,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        OpenCVLoader.initDebug();
-        initializeOpenCVDependencies();
-        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+
         if (textureView.isAvailable()) {
             openCamera(cameraIndex);
         } else {
             textureView.setSurfaceTextureListener(textureListener);
         }
+
+        OpenCVLoader.initDebug();
+        initializeOpenCVDependencies();
+        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
     }
 
     @Override
@@ -375,6 +377,7 @@ public class MainActivity extends AppCompatActivity {
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
+
             Image image = null;
             try {
                 image = reader.acquireLatestImage();
@@ -455,7 +458,7 @@ public class MainActivity extends AppCompatActivity {
             MatOfRect smile = new MatOfRect();
 
             if (smileCascadeClassifier != null) {
-                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.1, 10);
+                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
             }
 
             Log.w("fuck", String.format("%d",smile.toArray().length));
