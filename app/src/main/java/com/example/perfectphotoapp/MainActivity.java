@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int IMAGE_BUFFER_SIZE = 1;
     private static final double FACE_MARGIN_MULTIPLIER = 0.25;
     private static final String TAG = "PerfectPhoto"; // log tag
+    private static final int FRAME_PROCESS_NUMBER = 3;
 
     // variables referring to the camera
     private int cameraIndex = 0;
@@ -78,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
     private Mat grayscaleImage;
     private int absoluteFaceSize;
     private ImageReader imageReader;
+    private int frameCount = 0;
 
 
     // APP HANDLING
@@ -377,24 +379,28 @@ public class MainActivity extends AppCompatActivity {
     private final ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-
-            Image image = null;
-            try {
-                image = reader.acquireLatestImage();
-                if (image != null) {
-                    Mat mYuvMat = imageToMat(image);
-                    Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                    grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                    // The faces will be a 20% of the height of the screen
-                    absoluteFaceSize = (int) (image.getHeight() * 0.20);
-                    Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                    Face[] faces = Cascadeframe(bgrMat);
-                    ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
+            if (++frameCount % FRAME_PROCESS_NUMBER != 0) {
+                reader.acquireLatestImage().close();
+            }
+            else {
+                Image image = null;
+                try {
+                    image = reader.acquireLatestImage();
+                    if (image != null) {
+                        Mat mYuvMat = imageToMat(image);
+                        Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+                        grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+                        // The faces will be a 20% of the height of the screen
+                        absoluteFaceSize = (int) (image.getHeight() * 0.20);
+                        Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
+                        Face[] faces = Cascadeframe(bgrMat);
+                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, e.getMessage());
+                } finally {
+                    image.close();
                 }
-            } catch (Exception e) {
-                Log.w(TAG, e.getMessage());
-            } finally {
-                image.close();
             }
         }
     };
