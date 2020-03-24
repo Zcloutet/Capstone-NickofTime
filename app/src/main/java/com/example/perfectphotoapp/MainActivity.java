@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private static final double FACE_MARGIN_MULTIPLIER = 0.25;
     private static final String TAG = "PerfectPhoto"; // log tag
     private static final int FRAME_PROCESS_NUMBER = 3;
+    private static final int MAX_FACE_AGE = 3;
 
     // variables referring to the camera
     private int cameraIndex = 0;
@@ -80,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private int absoluteFaceSize;
     private ImageReader imageReader;
     private int frameCount = 0;
+    private Face[] faces = {};
 
 
     // APP HANDLING
@@ -393,7 +395,8 @@ public class MainActivity extends AppCompatActivity {
                         // The faces will be a 20% of the height of the screen
                         absoluteFaceSize = (int) (image.getHeight() * 0.20);
                         Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                        Face[] faces = Cascadeframe(bgrMat);
+                        Face[] newFaces = Cascadeframe(bgrMat);
+                        faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
                         ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
                     }
                 } catch (Exception e) {
@@ -466,8 +469,6 @@ public class MainActivity extends AppCompatActivity {
             if (smileCascadeClassifier != null) {
                 smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
             }
-
-            Log.w("fuck", String.format("%d",smile.toArray().length));
 
             if (smile.toArray().length == 0) {
                 facesArray[i].smile = false;
