@@ -65,7 +65,7 @@ import org.opencv.objdetect.CascadeClassifier;
 public class MainActivity extends AppCompatActivity {
     private int CAMERA_PERMISSION_CODE = 1;
     private int IMAGE_BUFFER_SIZE = 3;
-    private int cameraIndex = 0;
+    private int cameraIndex = 1;
     // variables referring to the camera
     protected String cameraId;
     protected CameraDevice cameraDevice;
@@ -89,6 +89,10 @@ public class MainActivity extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
     Mat mYuvMat;
+
+    public int getCameraIndex(){
+        return cameraIndex;
+    }
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
