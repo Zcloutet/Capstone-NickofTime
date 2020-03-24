@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private TextureView textureView;
     private CascadeClassifier faceCascadeClassifier;
     private CascadeClassifier smileCascadeClassifier;
+    private CascadeClassifier eyeCascadeClassifier;
     private Mat grayscaleImage;
     private int absoluteFaceSize;
     private ImageReader imageReader;
@@ -387,13 +388,28 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     image = reader.acquireLatestImage();
                     if (image != null) {
-                        Mat mYuvMat = imageToMat(image);
+                        //new conversion
+                        byte[] nv21;
+                        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+                        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+                        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+                        int ySize = yBuffer.remaining();
+                        int uSize = uBuffer.remaining();
+                        int vSize = vBuffer.remaining();
+                        nv21 = new byte[ySize + uSize + vSize];
+                        //U and V are swapped
+                        yBuffer.get(nv21, 0, ySize);
+                        vBuffer.get(nv21, ySize, vSize);
+                        uBuffer.get(nv21, ySize + vSize, uSize);
+
+                        Mat mRGB = getYUV2Mat(image,nv21);
+                        //end conversion
                         Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
                         grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
                         // The faces will be a 20% of the height of the screen
                         absoluteFaceSize = (int) (image.getHeight() * 0.20);
-                        Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                        Face[] faces = Cascadeframe(bgrMat);
+                        //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
+                        Face[] faces = Cascadeframe(mRGB);
                         ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
                     }
                 } catch (Exception e) {
@@ -408,7 +424,7 @@ public class MainActivity extends AppCompatActivity {
     private void initializeOpenCVDependencies() {
         faceCascadeClassifier = openCascadeClassifier(R.raw.lbpcascade_frontalface, "lbpcascade_frontalface.xml");
         smileCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_smile, "haarcascade_smile.xml");
-
+        eyeCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_eye, "haarcascade_eye.xml");
         // And we are ready to go
         //openCvCameraView.enableView();
     }
@@ -467,7 +483,7 @@ public class MainActivity extends AppCompatActivity {
                 smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
             }
 
-            Log.w("fuck", String.format("%d",smile.toArray().length));
+            //Log.w("fuck", String.format("%d",smile.toArray().length));
 
             if (smile.toArray().length == 0) {
                 facesArray[i].smile = false;
@@ -475,6 +491,11 @@ public class MainActivity extends AppCompatActivity {
             else {
                 facesArray[i].smile = true;
             }
+            MatOfRect eyes = new MatOfRect();
+            if(eyeCascadeClassifier != null) {
+                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 5);
+            }
+            Log.w("num eyes", String.format("%d",eyes.toArray().length));
         }
         return facesArray;
     }
@@ -497,54 +518,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
      */
-
-    public static Mat imageToMat(Image image) {
-        ByteBuffer buffer;
-        int rowStride;
-        int pixelStride;
-        int width = image.getWidth();
-        int height = image.getHeight();
-        int offset = 0;
-
-        Image.Plane[] planes = image.getPlanes();
-        byte[] data = new byte[image.getWidth() * image.getHeight() * ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8];
-        byte[] rowData = new byte[planes[0].getRowStride()];
-
-        for (int i = 0; i < planes.length; i++) {
-            buffer = planes[i].getBuffer();
-            rowStride = planes[i].getRowStride();
-            pixelStride = planes[i].getPixelStride();
-            int w = (i == 0) ? width : width / 2;
-            int h = (i == 0) ? height : height / 2;
-            for (int row = 0; row < h; row++) {
-                int bytesPerPixel = ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8;
-                if (pixelStride == bytesPerPixel) {
-                    int length = w * bytesPerPixel;
-                    buffer.get(data, offset, length);
-
-                    if (h - row != 1) {
-                        buffer.position(buffer.position() + rowStride - length);
-                    }
-                    offset += length;
-                } else {
-
-
-                    if (h - row == 1) {
-                        buffer.get(rowData, 0, width - pixelStride + 1);
-                    } else {
-                        buffer.get(rowData, 0, rowStride);
-                    }
-
-                    for (int col = 0; col < w; col++) {
-                        data[offset++] = rowData[col * pixelStride];
-                    }
-                }
-            }
-        }
-
-        Mat mat = new Mat(height + height / 2, width, CvType.CV_8UC1);
-        mat.put(0, 0, data);
-
-        return mat;
+    public Mat getYUV2Mat(Image image,byte[] data) {
+        Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CvType.CV_8UC1);
+        mYuv.put(0, 0, data);
+        Mat mRGB = new Mat();
+        Imgproc.cvtColor(mYuv, mRGB, Imgproc.COLOR_YUV2RGB_NV21, 3);
+        return mRGB;
     }
+
 }
