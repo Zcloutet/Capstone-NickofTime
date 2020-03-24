@@ -460,7 +460,7 @@ public class MainActivity extends AppCompatActivity {
         // Use the classifier to detect faces
 
         if (faceCascadeClassifier != null) {
-            faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
+            faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 3, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
         // If any faces found, draw a rectangle around it
@@ -493,7 +493,7 @@ public class MainActivity extends AppCompatActivity {
             }
             MatOfRect eyes = new MatOfRect();
             if(eyeCascadeClassifier != null) {
-                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 5);
+                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
             }
             Log.w("num eyes", String.format("%d",eyes.toArray().length));
         }
