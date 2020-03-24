@@ -37,6 +37,17 @@
         app:layout_constraintVertical_bias="0.934"
         app:srcCompat="@drawable/capture" />
 
+    <ImageButton
+        android:id="@+id/settings"
+        android:layout_width="55dp"
+        android:layout_height="55dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:scaleType="fitXY"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.934"
+        app:srcCompat="@drawable/settings" />
+
 
     <ImageView
         android:id="@+id/imageViewFlash"
@@ -74,7 +85,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteX="16dp"
         tools:layout_editor_absoluteY="0dp">
 
         <org.opencv.android.JavaCameraView
