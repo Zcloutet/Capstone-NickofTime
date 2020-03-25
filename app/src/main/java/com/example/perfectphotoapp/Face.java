@@ -4,6 +4,10 @@ import android.graphics.Rect;
 
 import org.opencv.core.Mat;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class Face {
     // values boxing in the face
     protected int left;
@@ -37,6 +41,10 @@ public class Face {
         return new Rect(this.left, this.top, this.right, this.bottom);
     }
 
+
+
+    // FACE MATCHING
+
     public boolean centerTest(Face face) {
         // if the center of this face is within the other face and vice versa, return true; else, return false
         int cx, cy;
@@ -52,5 +60,34 @@ public class Face {
             else return false;
         }
         else return false;
+    }
+
+    public static List<Integer> matchFaces(Face f, List<Face> faces) {
+        List<Integer> matches = new ArrayList<>();
+
+        for (int i=0; i<faces.size(); ++i) {
+            if (f.centerTest(faces.get(i))) {
+                matches.add(i);
+            }
+        }
+
+        return matches;
+    }
+
+    public static Face[] compareFaces(Face[] oldFaces, Face[] newFaces, int maxAge) {
+        List<Face> combinedFaces = new ArrayList<>(Arrays.asList(newFaces));
+        List<Integer> matches;
+
+        for (int i=0; i<oldFaces.length; ++i) {
+            matches = matchFaces(oldFaces[i], combinedFaces);
+            if (matches.size() == 0) {
+                ++oldFaces[i].age;
+                if (oldFaces[i].age <= maxAge) {
+                    combinedFaces.add(oldFaces[i]);
+                }
+            }
+        }
+
+        return (Face[]) combinedFaces.toArray(new Face[0]);
     }
 }

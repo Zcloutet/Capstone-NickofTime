@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
     private static final double FACE_MARGIN_MULTIPLIER = 0.25;
     private static final String TAG = "PerfectPhoto"; // log tag
     private static final int FRAME_PROCESS_NUMBER = 3;
+    private static final int MAX_FACE_AGE = 3;
 
     // variables referring to the camera
     private int cameraIndex = 0;
@@ -81,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
     private int absoluteFaceSize;
     private ImageReader imageReader;
     private int frameCount = 0;
+    private Face[] faces = {};
+
 
 
     // APP HANDLING
@@ -408,8 +411,10 @@ public class MainActivity extends AppCompatActivity {
                         grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
                         // The faces will be a 20% of the height of the screen
                         absoluteFaceSize = (int) (image.getHeight() * 0.20);
+
                         //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                        Face[] faces = Cascadeframe(mRGB);
+                        Face[] newFaces = Cascadeframe(mRGB);
+                        faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
                         ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
                     }
                 } catch (Exception e) {
@@ -474,8 +479,6 @@ public class MainActivity extends AppCompatActivity {
             facesArray[i].Crop(aInputFrame,rectFace);
             //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
             //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
-
-
             // smile detection
             MatOfRect smile = new MatOfRect();
 
