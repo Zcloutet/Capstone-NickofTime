@@ -153,10 +153,7 @@ public class CameraOverlayView extends View {
         if (actionMasked != MotionEvent.ACTION_DOWN) {
             return false;
         }
-
         int[] touchCoordinates = canvasToImage((int) motionEvent.getX(), (int) motionEvent.getY());
-
-
         return true;
     }
     */
