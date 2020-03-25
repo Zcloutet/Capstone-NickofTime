@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:keepScreenOn="true"
     android:background="#000000"
     tools:context=".MainActivity">
 
@@ -29,6 +30,32 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
+    <ImageButton
+        android:id="@+id/button"
+        android:layout_width="55dp"
+        android:layout_height="55dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:scaleType="fitXY"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.934"
+        app:srcCompat="@drawable/capture" />
+
+    <ImageButton
+        android:id="@+id/settings"
+        android:layout_width="55dp"
+        android:layout_height="55dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:scaleType="fitXY"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/flash"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/settings" />
+
+
     <ImageView
         android:id="@+id/imageViewFlash"
         android:layout_width="match_parent"
@@ -53,42 +80,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/flash" />
-
-    <SurfaceView
-        android:id="@+id/surface2"
-        android:layout_width="344dp"
-        android:layout_height="74dp"
-        android:alpha="0.5"
-        android:background="#f3f2f2"
-        android:backgroundTint="#7C7B7B"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/texture" />
-
-    <SurfaceView
-        android:id="@+id/surface"
-        android:layout_width="361dp"
-        android:layout_height="109dp"
-        android:layout_marginBottom="4dp"
-        android:alpha="0.5"
-        android:background="#f3f2f2"
-        android:backgroundTint="#7C7B7B"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <ImageButton
-        android:id="@+id/button"
-        android:layout_width="55dp"
-        android:layout_height="55dp"
-        android:layout_marginBottom="40dp"
-        android:background="#00140F0F"
-        android:scaleType="fitXY"
-        android:tint="#00110F0F"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@android:drawable/ic_menu_camera" />
 
     <ImageButton
         android:id="@+id/switchButton"

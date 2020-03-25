@@ -1,6 +1,12 @@
 package com.example.perfectphotoapp;
 
 import android.Manifest;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.graphics.SurfaceTexture;
 import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -29,11 +35,15 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
+import android.util.SparseIntArray;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
+import android.widget.ImageView;
+import android.media.MediaActionSound;
+import android.animation.ValueAnimator;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -41,13 +51,37 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.Manifest;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.widget.Button;
+import android.view.TextureView;
+import android.util.Size;
+import android.view.Surface;
+import android.hardware.camera2.CaptureRequest;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.ImageReader;
+import android.graphics.ImageFormat;
+import android.graphics.Bitmap;
+import android.hardware.camera2.*;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfRect;
-import org.opencv.core.Rect;
+//import org.opencv.android.
+import org.opencv.core.*;
+import org.opencv.imgcodecs.Imgcodecs;
+//import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
@@ -64,14 +98,17 @@ import java.util.Date;
 public class MainActivity extends AppCompatActivity {
     // constants
     private static final int CAMERA_PERMISSION_CODE = 1;
-    private static final int IMAGE_BUFFER_SIZE = 2;
+    private static final int IMAGE_BUFFER_SIZE = 1;
     private static final double FACE_MARGIN_MULTIPLIER = 0.25;
     private static final String TAG = "PerfectPhoto"; // log tag
+    private static final int FRAME_PROCESS_NUMBER = 3;
+    private static final int MAX_FACE_AGE = 3;
+
     CameraManager manager;
     HandlerThread mBackgroundThread;
     HandlerThread openCVThread;
     // variables referring to the camera
-    private int cameraIndex = 0;
+    private int cameraIndex = 1;
     protected String cameraId;
     protected CaptureRequest captureRequest;
     protected CameraDevice cameraDevice;
@@ -81,35 +118,27 @@ public class MainActivity extends AppCompatActivity {
     private Handler mBackgroundHandler;
     private Handler openCVHandler;
     private TextureView textureView;
-    private CascadeClassifier cascadeClassifier;
+    private CascadeClassifier faceCascadeClassifier;
+    private CascadeClassifier smileCascadeClassifier;
+    private CascadeClassifier eyeCascadeClassifier;
     private Mat grayscaleImage;
     private int absoluteFaceSize;
     private boolean flash = false;
     private ImageReader opencvImageReader,captureImageReader;
     private boolean hasFlash ;
+    private int frameCount = 0;
+    private Face[] faces = {};
 
-//function to save captured image to internal storage
-    private String saveToInternalStorage(Image image) throws  Exception{
-        byte[] data = null;
-        if (image.getFormat() == ImageFormat.JPEG) {
-            Image.Plane[] planes = image.getPlanes();
-            ByteBuffer buffer = planes[0].getBuffer();
-            data = new byte[buffer.capacity()];
-            buffer.get(data);
-        }
-        ContextWrapper cw = new ContextWrapper(getApplicationContext());
-        File directory = cw.getDir("images", Context.MODE_PRIVATE);
-        // Create imageDir
-        File mypath=new File(directory,"image_"+ new Date().getTime() +".jpg");
-
-        FileOutputStream fos = new FileOutputStream(mypath);
-            // Use the compress method on the BitMap object to write image to the OutputStream
-            if(data!=null && data.length>0)
-            fos.write(data);
-
-            fos.close();
-        return mypath.getPath();
+    private ImageView widthCapturer;
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 0);
+        ORIENTATIONS.append(Surface.ROTATION_90, 90);
+        ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
+
+    // APP HANDLING
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,7 +149,9 @@ public class MainActivity extends AppCompatActivity {
 
         // textureView
         textureView = (TextureView) findViewById(R.id.texture);
+        assert textureView != null;
         textureView.setSurfaceTextureListener(textureListener);
+
         // take photo button
         ImageButton buttonRequest = findViewById(R.id.button);
         ImageButton gallery = findViewById(R.id.gallery);
@@ -162,7 +193,6 @@ public class MainActivity extends AppCompatActivity {
         buttonRequest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 takePhoto();
             }
         });
@@ -187,8 +217,41 @@ public class MainActivity extends AppCompatActivity {
 
         captureImageReader = ImageReader.newInstance(400,800,ImageFormat.JPEG,1);
         captureImageReader.setOnImageAvailableListener(captureImageAvailableListener,mBackgroundHandler);
+
+        ImageButton settings = findViewById(R.id.settings);
+        settings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openSettingsPage();
+            }
+        });
     }
-//start necessary handlers to handle intensive tasks of camera and opencv
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (textureView.isAvailable()) {
+            openCamera(cameraIndex);
+        } else {
+            textureView.setSurfaceTextureListener(textureListener);
+        }
+
+        OpenCVLoader.initDebug();
+        initializeOpenCVDependencies();
+        startBackgroundThread();
+        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+    }
+
+    @Override
+    protected void onPause() {
+        closeCamera(); // close camera whenever the app is no longer open
+        stopBackgroundThread();
+
+        super.onPause();
+    }
+
+    //start necessary handlers to handle intensive tasks of camera and opencv
     protected void startBackgroundThread() {
         mBackgroundThread = new HandlerThread("Camera Background");
         openCVThread = new HandlerThread("OPEN CV");
@@ -214,31 +277,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        OpenCVLoader.initDebug();
-        initializeOpenCVDependencies();
-        startBackgroundThread();
-//        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
-        if (textureView.isAvailable()) {
-            openCamera(cameraIndex);
-        } else {
-            textureView.setSurfaceTextureListener(textureListener);
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        closeCamera(); // close camera whenever the app is no longer open
-        stopBackgroundThread();
-
-        super.onPause();
+    public void openSettingsPage(){
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
     }
 
 
     // CAMERA HANDLING
+
 //open camera and create capturesession
     private void openCamera(int cameraIndex) {
         // open camera by getting camera manager and opening the first camera
@@ -253,9 +299,6 @@ public class MainActivity extends AppCompatActivity {
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
 
-
-            ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION));
-            
             if (ContextCompat.checkSelfPermission(MainActivity.this,
                     Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 requestCameraPermission();
@@ -263,6 +306,16 @@ public class MainActivity extends AppCompatActivity {
             else {
                 manager.openCamera(cameraId, stateCallBack, mBackgroundHandler);
             }
+
+//            int deviceOrientation = getWindowManager().getDefaultDisplay().getRotation();
+//            int totalRotation = sensorToDeviceRotation(characteristics, deviceOrientation);
+//            boolean swapRotation = totalRotation == 90 || totalRotation == 270;
+//            int rotatedWidth = widthCapturer.getWidth();
+//            int rotatedHeight = widthCapturer.getHeight();
+//            if(swapRotation){
+//                rotatedWidth = widthCapturer.getHeight();
+//                rotatedHeight = widthCapturer.getWidth();
+//            }
         }
         catch (CameraAccessException e) {
             // if there was a problem accessing the camera, let the user know
@@ -282,12 +335,46 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "Camera closed");
     }
 
+    public void setOrientations(Context context, int cameraId){
+        CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+        try{
+            String[] cameraIds = manager.getCameraIdList();
+
+            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraIds[cameraId]);
+            int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+            int deviceOrientation = getWindowManager().getDefaultDisplay().getRotation();
+            int orientation = (sensorOrientation + deviceOrientation);
+            orientation = (360 - orientation+180) % 360;
+            ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(sensorOrientation);
+
+//            if(deviceOrientation == 0){
+//                orientation = 90;
+//            }else if(deviceOrientation == 3){
+//                orientation = 180;
+//            }
+            Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^SENSOR ORIENTATION "+sensorOrientation);
+            Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^DEVICE ORIENTATION "+deviceOrientation);
+            Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ORIENTATION "+orientation);
+            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(orientation));
+        }catch(CameraAccessException e){
+            Log.i(TAG, "ERROR ACCESSING CAMERA "+e);
+        }
+    }
+
+    private static int sensorToDeviceRotation(CameraCharacteristics cameraCharacteristics, int deviceOrientation){
+        int sensorOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        deviceOrientation = ORIENTATIONS.get(deviceOrientation);
+        return (sensorOrientation + deviceOrientation + 360) % 360;
+    }
+
     // stateCallBack for opening cameras
     private final CameraDevice.StateCallback stateCallBack = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
             cameraDevice = camera;
             createCameraPreview();
+            setOrientations(MainActivity.this,cameraIndex);
         }
 
         @Override
@@ -301,10 +388,8 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    //take photo shutter sound
     private void takePhoto() {
-
-
+        // play shutter sound
         Log.i(TAG, "playing shutter sound");
         MediaActionSound mediaActionSound = new MediaActionSound();
         mediaActionSound.play(MediaActionSound.SHUTTER_CLICK);
@@ -356,8 +441,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-//capture image
+    //capture image
     private void captureImage() throws Exception {
 
         CaptureRequest.Builder request = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
@@ -370,12 +454,56 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-
-
         cameraCaptureSessions.capture(request.build(),null,mBackgroundHandler);
-
-
     }
+
+    //function to save captured image to internal storage
+    private String saveToInternalStorage(Image image) throws  Exception{
+        byte[] data = null;
+        if (image.getFormat() == ImageFormat.JPEG) {
+            Image.Plane[] planes = image.getPlanes();
+            ByteBuffer buffer = planes[0].getBuffer();
+            data = new byte[buffer.capacity()];
+            buffer.get(data);
+        }
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        File directory = cw.getDir("images", Context.MODE_PRIVATE);
+        // Create imageDir
+        File mypath=new File(directory,"image_"+ new Date().getTime() +".jpg");
+
+        FileOutputStream fos = new FileOutputStream(mypath);
+        // Use the compress method on the BitMap object to write image to the OutputStream
+        if(data!=null && data.length>0)
+            fos.write(data);
+
+        fos.close();
+        return mypath.getPath();
+    }
+
+    public int getCameraIndex(){
+        return cameraIndex;
+    }
+
+    private ImageReader.OnImageAvailableListener captureImageAvailableListener = new ImageReader.OnImageAvailableListener() {
+        @Override
+        public void onImageAvailable(ImageReader imageReader) {
+            Image image = imageReader.acquireLatestImage();
+            if(image != null){
+                try {
+                    saveToInternalStorage(image);
+                    Toast.makeText(MainActivity.this, "Image has been saved.", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Failed to save image", Toast.LENGTH_SHORT).show();
+                    e.printStackTrace();
+                }
+            }else{
+                Toast.makeText(MainActivity.this, "Unknown error has occurred", Toast.LENGTH_SHORT).show();
+            }
+            image.close();
+//            imageReader.close();
+        }
+    };
+
 
     // PERMISSION HANDLING
 
@@ -503,38 +631,68 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-//opencv stuffs
+
     private final ImageReader.OnImageAvailableListener mOnOpenCVImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Image image = null;
-            try {
-                image = reader.acquireLatestImage();
-                if (image != null) {
-                    Mat mYuvMat = imageToMat(image);
-                    Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                    grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                    // The faces will be a 20% of the height of the screen
-                    absoluteFaceSize = (int) (image.getHeight() * 0.20);
-                    Imgproc.cvtColor(mYuvMat, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                    Face[] faces = Cascadeframe(bgrMat);
-                    ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
+            if (++frameCount % FRAME_PROCESS_NUMBER != 0) {
+                reader.acquireLatestImage().close();
+            }
+            else {
+                Image image = null;
+                try {
+                    image = reader.acquireLatestImage();
+                    if (image != null) {
+                        //new conversion
+                        byte[] nv21;
+                        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+                        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+                        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+                        int ySize = yBuffer.remaining();
+                        int uSize = uBuffer.remaining();
+                        int vSize = vBuffer.remaining();
+                        nv21 = new byte[ySize + uSize + vSize];
+                        //U and V are swapped
+                        yBuffer.get(nv21, 0, ySize);
+                        vBuffer.get(nv21, ySize, vSize);
+                        uBuffer.get(nv21, ySize + vSize, uSize);
+
+                        Mat mRGB = getYUV2Mat(image,nv21);
+                        //end conversion
+                        Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+                        grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+                        // The faces will be a 20% of the height of the screen
+                        absoluteFaceSize = (int) (image.getHeight() * 0.20);
+
+                        //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
+                        Face[] newFaces = Cascadeframe(mRGB);
+                        faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
+                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, e.getMessage());
+                } finally {
+                    image.close();
                 }
-            } catch (Exception e) {
-                Log.w(TAG, e.getMessage());
-            } finally {
-                if(image!=null)
-                image.close();
             }
         }
     };
 
     private void initializeOpenCVDependencies() {
+        faceCascadeClassifier = openCascadeClassifier(R.raw.lbpcascade_frontalface, "lbpcascade_frontalface.xml");
+        smileCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_smile, "haarcascade_smile.xml");
+        eyeCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_eye, "haarcascade_eye.xml");
+
+        // And we are ready to go
+        //openCvCameraView.enableView();
+    }
+
+    private CascadeClassifier openCascadeClassifier(int value, String name) {
         try {
             // Copy the resource into a temp file so OpenCV can load it
-            InputStream is = getResources().openRawResource(R.raw.lbpcascade_frontalface);
+            InputStream is = getResources().openRawResource(value);
             File cascadeDir = getDir("cascade", Context.MODE_PRIVATE);
-            File mCascadeFile = new File(cascadeDir, "lbpcascade_frontalface.xml");
+            File mCascadeFile = new File(cascadeDir, name);
             FileOutputStream os = new FileOutputStream(mCascadeFile);
 
             byte[] buffer = new byte[4096];
@@ -545,12 +703,11 @@ public class MainActivity extends AppCompatActivity {
             is.close();
             os.close();
             // Load the cascade classifier
-            cascadeClassifier = new CascadeClassifier(mCascadeFile.getAbsolutePath());
+            return new CascadeClassifier(mCascadeFile.getAbsolutePath());
         } catch (Exception e) {
             Log.e("OpenCVActivity", "Error loading cascade", e);
+            return null;
         }
-        // And we are ready to go
-        //openCvCameraView.enableView();
     }
 
     public Face[] Cascadeframe(Mat aInputFrame) {
@@ -560,8 +717,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Use the classifier to detect faces
 
-        if (cascadeClassifier != null) {
-            cascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 2, 2,
+        if (faceCascadeClassifier != null) {
+            faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 3, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
         // If any faces found, draw a rectangle around it
@@ -575,6 +732,30 @@ public class MainActivity extends AppCompatActivity {
             facesArray[i].Crop(aInputFrame,rectFace);
             //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
             //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
+
+
+            // smile detection
+            MatOfRect smile = new MatOfRect();
+
+            if (smileCascadeClassifier != null) {
+                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
+            }
+
+            if (smile.toArray().length == 0) {
+                facesArray[i].smile = false;
+            }
+            else {
+                facesArray[i].smile = true;
+            }
+
+            // eye detection
+            MatOfRect eyes = new MatOfRect();
+
+            if(eyeCascadeClassifier != null) {
+                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
+            }
+
+            Log.w("num eyes", String.format("%d",eyes.toArray().length));
         }
         return facesArray;
     }
@@ -597,77 +778,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
      */
-
-    public static Mat imageToMat(Image image) {
-        ByteBuffer buffer;
-        int rowStride;
-        int pixelStride;
-        int width = image.getWidth();
-        int height = image.getHeight();
-        int offset = 0;
-
-        Image.Plane[] planes = image.getPlanes();
-        byte[] data = new byte[image.getWidth() * image.getHeight() * ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8];
-        byte[] rowData = new byte[planes[0].getRowStride()];
-
-        for (int i = 0; i < planes.length; i++) {
-            buffer = planes[i].getBuffer();
-            rowStride = planes[i].getRowStride();
-            pixelStride = planes[i].getPixelStride();
-            int w = (i == 0) ? width : width / 2;
-            int h = (i == 0) ? height : height / 2;
-            for (int row = 0; row < h; row++) {
-                int bytesPerPixel = ImageFormat.getBitsPerPixel(ImageFormat.YUV_420_888) / 8;
-                if (pixelStride == bytesPerPixel) {
-                    int length = w * bytesPerPixel;
-                    buffer.get(data, offset, length);
-
-                    if (h - row != 1) {
-                        buffer.position(buffer.position() + rowStride - length);
-                    }
-                    offset += length;
-                } else {
-
-
-                    if (h - row == 1) {
-                        buffer.get(rowData, 0, width - pixelStride + 1);
-                    } else {
-                        buffer.get(rowData, 0, rowStride);
-                    }
-
-                    for (int col = 0; col < w; col++) {
-                        data[offset++] = rowData[col * pixelStride];
-                    }
-                }
-            }
-        }
-
-        Mat mat = new Mat(height + height / 2, width, CvType.CV_8UC1);
-        mat.put(0, 0, data);
-
-        return mat;
+    public Mat getYUV2Mat(Image image,byte[] data) {
+        Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CvType.CV_8UC1);
+        mYuv.put(0, 0, data);
+        Mat mRGB = new Mat();
+        Imgproc.cvtColor(mYuv, mRGB, Imgproc.COLOR_YUV2RGB_NV21, 3);
+        return mRGB;
     }
-
-
-    private ImageReader.OnImageAvailableListener captureImageAvailableListener = new ImageReader.OnImageAvailableListener() {
-        @Override
-        public void onImageAvailable(ImageReader imageReader) {
-            Image image = imageReader.acquireLatestImage();
-            if(image != null){
-                try {
-                    saveToInternalStorage(image);
-                    Toast.makeText(MainActivity.this, "Image has been saved.", Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Failed to save image", Toast.LENGTH_SHORT).show();
-                    e.printStackTrace();
-                }
-            }else{
-                Toast.makeText(MainActivity.this, "Unknown error has occurred", Toast.LENGTH_SHORT).show();
-            }
-            image.close();
-//            imageReader.close();
-        }
-    };
-
 
 }

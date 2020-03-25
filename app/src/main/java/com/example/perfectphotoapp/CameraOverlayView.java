@@ -23,6 +23,7 @@ public class CameraOverlayView extends View {
     private int sensorOrientation;
 
     // paint options
+    private int strokeWidth;
     private Paint redPaint;
     private Paint yellowPaint;
     private Paint greenPaint;
@@ -34,7 +35,7 @@ public class CameraOverlayView extends View {
         super(context, attrs);
 
         float density = getResources().getDisplayMetrics().density;
-        int strokeWidth = (int) (2 * density);
+        strokeWidth = (int) (2 * density);
 
         redPaint = new Paint();
         redPaint.setColor(Color.RED);
@@ -47,7 +48,7 @@ public class CameraOverlayView extends View {
         yellowPaint.setStrokeWidth(strokeWidth);
 
         greenPaint = new Paint();
-        greenPaint.setColor(Color.RED);
+        greenPaint.setColor(Color.GREEN);
         greenPaint.setStyle(Paint.Style.STROKE);
         greenPaint.setStrokeWidth(strokeWidth);
     }
@@ -67,7 +68,12 @@ public class CameraOverlayView extends View {
 
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
-                canvas.drawRect(imageToCanvas(faces[i].getRect()), redPaint);
+                Paint paint = faces[i].smile ? greenPaint : redPaint;
+                Rect rect = imageToCanvas(faces[i].getRect(), w, h, imagew, imageh, sensorOrientation);
+
+                canvas.drawRect(rect, paint);
+
+                drawSmiley(rect.centerX(),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
             }
         }
     }
@@ -81,8 +87,21 @@ public class CameraOverlayView extends View {
         invalidate(); // makes it redraw the canvas
     }
 
+    public void drawSmiley(int x, int y, int r, Paint paint, Canvas canvas, boolean smiling) {
+        canvas.drawCircle(x, y, r, paint);
+        canvas.drawCircle(x-r/3, y-r/3, strokeWidth/2, paint);
+        canvas.drawCircle(x+r/3, y-r/3, strokeWidth/2, paint);
+
+        if (smiling) {
+            canvas.drawArc(x-r/2, y-r/2, x+r/2, y+r/2, 30, 120, false, paint);
+        }
+        else {
+            canvas.drawLine(x-r/2,y+r/3, x+r/2, y+r/3, paint);
+        }
+    }
+
     // convert a rectangle on the camera image to a rectangle on the canvas
-    public Rect imageToCanvas(Rect r) {
+    public static Rect imageToCanvas(Rect r, int w, int h, int imagew, int imageh, int sensorOrientation) {
         Rect r2 = new Rect();
 
         switch (sensorOrientation) {
@@ -98,18 +117,14 @@ public class CameraOverlayView extends View {
                 r2.right = r.bottom*w/imageh;
                 r2.bottom = r.right*h/imagew;
                 break;
-            case 180 :
-                break;
-            case 270 :
-                break;
-        }
+        } // 180 and 270 degree rotation not handled
 
         return r2;
 
     }
 
     // convert a point on the canvas to a point on the camera image
-    public int[] canvasToImage(int x, int y) {
+    public static int[] canvasToImage(int x, int y, int w, int h, int imagew, int imageh, int sensorOrientation) {
         int x2 = 0;
         int y2 = 0;
 
@@ -122,11 +137,7 @@ public class CameraOverlayView extends View {
                 x2 = y * imagew/h;
                 y2 = x * imageh/w;
                 break;
-            case 180 :
-                break;
-            case 270 :
-                break;
-        }
+        } // 180 and 270 degree rotation not handled
 
         return new int[] {x2, y2};
     }
@@ -142,10 +153,7 @@ public class CameraOverlayView extends View {
         if (actionMasked != MotionEvent.ACTION_DOWN) {
             return false;
         }
-
         int[] touchCoordinates = canvasToImage((int) motionEvent.getX(), (int) motionEvent.getY());
-
-
         return true;
     }
     */
