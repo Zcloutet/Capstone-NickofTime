@@ -228,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
             int deviceOrientation = getWindowManager().getDefaultDisplay().getRotation();
             int orientation = (sensorOrientation + deviceOrientation);
             orientation = (360 - orientation+180) % 360;
+            ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(sensorOrientation);
 
 //            if(deviceOrientation == 0){
 //                orientation = 90;
