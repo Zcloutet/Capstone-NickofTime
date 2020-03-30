@@ -571,7 +571,13 @@ public class MainActivity extends AppCompatActivity {
                 eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
             }
 
-            Log.w("num eyes", String.format("%d",eyes.toArray().length));
+            if (eyes.toArray().length >= 1) {
+                facesArray[i].eyesOpen = true;
+            }
+            else {
+                facesArray[i].eyesOpen = false;
+            }
+            //Log.w("num eyes", String.format("%d",eyes.toArray().length));
         }
         return facesArray;
     }

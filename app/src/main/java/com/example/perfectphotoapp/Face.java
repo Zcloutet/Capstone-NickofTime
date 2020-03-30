@@ -18,7 +18,8 @@ public class Face {
     protected Mat croppedimg;
 
     public int age;
-    public boolean smile;
+    public boolean smile = false;
+    public boolean eyesOpen = false;
 
     public Face(int left, int top, int right, int bottom) {
         this.left = left;

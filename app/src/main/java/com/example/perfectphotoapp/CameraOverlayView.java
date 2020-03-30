@@ -68,12 +68,23 @@ public class CameraOverlayView extends View {
 
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
-                Paint paint = faces[i].smile ? greenPaint : redPaint;
+                Paint paint;
+                if (faces[i].smile && faces[i].eyesOpen) {
+                    paint = greenPaint;
+                }
+                else if (!faces[i].smile && !faces[i].eyesOpen) {
+                    paint = redPaint;
+                }
+                else {
+                    paint = yellowPaint;
+                }
+
                 Rect rect = imageToCanvas(faces[i].getRect(), w, h, imagew, imageh, sensorOrientation);
 
                 canvas.drawRect(rect, paint);
 
-                drawSmiley(rect.centerX(),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
+                drawSmiley(rect.centerX()-strokeWidth*12,rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
+                drawEye(rect.centerX()+strokeWidth*12,rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
             }
         }
     }
@@ -97,6 +108,17 @@ public class CameraOverlayView extends View {
         }
         else {
             canvas.drawLine(x-r/2,y+r/3, x+r/2, y+r/3, paint);
+        }
+    }
+
+    public void drawEye(int x, int y, int r, Paint paint, Canvas canvas, boolean eyesOpen) {
+        canvas.drawArc(x-1.4f*r,y-3.73f*r,x+0.4f*r,y+0.27f*r,60,60,false,paint);
+        canvas.drawArc(x-0.4f*r,y-3.73f*r,x+1.4f*r,y+0.27f*r,60,60,false,paint);
+        if (eyesOpen) {
+            canvas.drawArc(x-1.4f*r,y-0.27f*r,x+0.4f*r,y+3.73f*r,240,60,false,paint);
+            canvas.drawArc(x-0.4f*r,y-0.27f*r,x+1.4f*r,y+3.73f*r,240,60,false,paint);
+            canvas.drawCircle(x-0.5f*r,y-0.08f*r,strokeWidth/2,paint);
+            canvas.drawCircle(x+0.5f*r,y-0.08f*r,strokeWidth/2,paint);
         }
     }
 
