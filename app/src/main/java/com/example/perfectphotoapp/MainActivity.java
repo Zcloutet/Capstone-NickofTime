@@ -1,12 +1,6 @@
 package com.example.perfectphotoapp;
 
 import android.Manifest;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.app.Activity;
-import android.content.Intent;
-import android.graphics.SurfaceTexture;
 import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -23,7 +17,10 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
+import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
@@ -33,17 +30,15 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
+import android.util.SparseIntArray;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
-import android.util.SparseIntArray;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
-import android.widget.ImageView;
-import android.media.MediaActionSound;
-import android.animation.ValueAnimator;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -51,37 +46,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.Manifest;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
-import android.widget.Button;
-import android.view.TextureView;
-import android.util.Size;
-import android.view.Surface;
-import android.hardware.camera2.CaptureRequest;
-
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.ImageReader;
-import android.graphics.ImageFormat;
-import android.graphics.Bitmap;
-import android.hardware.camera2.*;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-//import org.opencv.android.
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
-//import org.opencv.core.Mat;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfRect;
+import org.opencv.core.Rect;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
@@ -91,6 +62,9 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
+
+//import org.opencv.android.
+//import org.opencv.core.Mat;
 
 //import org.opencv.android.
 //import org.opencv.core.Mat;
@@ -138,6 +112,8 @@ public class MainActivity extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
 
+
+
     // APP HANDLING
 
     @Override
@@ -184,7 +160,6 @@ public class MainActivity extends AppCompatActivity {
         gallery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent i = new Intent();
 
                 startActivity(new Intent(MainActivity.this,GalleryActivity.class));
 //                finish();
@@ -225,7 +200,15 @@ public class MainActivity extends AppCompatActivity {
                 openSettingsPage();
             }
         });
+
+
+
+        textureView.setOnTouchListener(onTouchListener);
+
+
     }
+
+
 
     @Override
     protected void onResume() {
@@ -284,14 +267,14 @@ public class MainActivity extends AppCompatActivity {
 
 
     // CAMERA HANDLING
-
+    CameraCharacteristics cameraInfo;
 //open camera and create capturesession
     private void openCamera(int cameraIndex) {
         // open camera by getting camera manager and opening the first camera
         manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
             cameraId = manager.getCameraIdList()[cameraIndex];
-            CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+            CameraCharacteristics characteristics= cameraInfo = manager.getCameraCharacteristics(cameraId);
             if(characteristics == null){
                 throw new NullPointerException("No camera with id "+ cameraIndex);
             }
@@ -454,6 +437,8 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+
+
         cameraCaptureSessions.capture(request.build(),null,mBackgroundHandler);
     }
 
@@ -589,6 +574,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+
         try {
             cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
         } catch (CameraAccessException e) {
@@ -786,4 +772,109 @@ public class MainActivity extends AppCompatActivity {
         return mRGB;
     }
 
+
+
+    //onTouchListener
+
+    boolean mManualFocusEngaged = false;
+    View.OnTouchListener onTouchListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            //only supports focus on tap if mobile device supports focus on particular area.
+            // if device does not support focus on particular area, this code only triggers device's algorithm for handling autofocus
+            final int actionMasked = motionEvent.getActionMasked();
+            if (actionMasked != MotionEvent.ACTION_DOWN) {
+                return false;
+            }
+            if (mManualFocusEngaged) {
+                Log.d(TAG, "Manual focus already engaged");
+                return true;
+            }
+
+            final android.graphics.Rect sensorArraySize = cameraInfo.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+
+            //TODO: here I just flip x,y, but this needs to correspond with the sensor orientation (via SENSOR_ORIENTATION)
+            final int y = (int)((motionEvent.getX() / (float)view.getWidth())  * (float)sensorArraySize.height());
+            final int x = (int)((motionEvent.getY() / (float)view.getHeight()) * (float)sensorArraySize.width());
+            final int halfTouchWidth  = 150; //(int)motionEvent.getTouchMajor(); //TODO: this doesn't represent actual touch size in pixel. Values range in [3, 10]...
+            final int halfTouchHeight = 150; //(int)motionEvent.getTouchMinor();
+            MeteringRectangle focusAreaTouch = new MeteringRectangle(Math.max(x - halfTouchWidth,  0),
+                    Math.max(y - halfTouchHeight, 0),
+                    halfTouchWidth  * 2,
+                    halfTouchHeight * 2,
+                    MeteringRectangle.METERING_WEIGHT_MAX - 1);
+
+            CameraCaptureSession.CaptureCallback captureCallbackHandler = new CameraCaptureSession.CaptureCallback() {
+                @Override
+                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                    super.onCaptureCompleted(session, request, result);
+                    mManualFocusEngaged = false;
+
+                    if (request.getTag() == "FOCUS_TAG") {
+                        //the focus trigger is complete -
+                        //resume repeating (preview surface will get frames), clear AF trigger
+                       captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
+                        try {
+                            cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), null, null);
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+
+                        }
+                    }
+                }
+
+                @Override
+                public void onCaptureFailed(CameraCaptureSession session, CaptureRequest request, CaptureFailure failure) {
+                    super.onCaptureFailed(session, request, failure);
+                    Log.e(TAG, "Manual AF failure: " + failure);
+                    mManualFocusEngaged = false;
+                }
+            };
+
+            //first stop the existing repeating request
+            try {
+                cameraCaptureSessions.stopRepeating();
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+                return true;
+            }
+
+            //cancel any existing AF trigger (repeated touches, etc.)
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
+            try {
+                cameraCaptureSessions.capture(captureRequestBuilder.build(), captureCallbackHandler, mBackgroundHandler);
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+                return true;
+            }
+
+            //Now add a new AF trigger with focus region
+            if (isMeteringAreaAFSupported()) {
+                //set autofocus areas
+               captureRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusAreaTouch});
+            }
+            captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+            captureRequestBuilder.setTag("FOCUS_TAG"); //we'll capture this later for resuming the preview
+
+            //then we ask for a single request (not repeating!)
+            try {
+                cameraCaptureSessions.capture(captureRequestBuilder.build(), captureCallbackHandler, mBackgroundHandler);
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+                return true;
+            }
+            mManualFocusEngaged = true;
+
+            return true;
+        }
+    };
+
+    //check if area auto focus supported
+    private boolean isMeteringAreaAFSupported() {
+        Log.d("CONTROL_MAX_REGIONS",String.valueOf(cameraInfo.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF)));
+        return cameraInfo.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) >= 1;
+    }
 }
