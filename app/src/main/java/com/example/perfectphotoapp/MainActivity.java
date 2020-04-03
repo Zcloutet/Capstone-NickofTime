@@ -103,6 +103,8 @@ public class MainActivity extends AppCompatActivity {
     private int frameCount = 0;
     private Face[] faces = {};
 
+    ImageButton btnFlash;
+
     private ImageView widthCapturer;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     static {
@@ -131,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
         // take photo button
         ImageButton buttonRequest = findViewById(R.id.button);
         ImageButton gallery = findViewById(R.id.gallery);
-        final ImageButton btnFlash = findViewById(R.id.flash);
+        btnFlash = findViewById(R.id.flash);
         btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
 
 
@@ -279,6 +281,12 @@ public class MainActivity extends AppCompatActivity {
                 throw new NullPointerException("No camera with id "+ cameraIndex);
             }
             hasFlash =  characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+            if(hasFlash){
+                btnFlash.setVisibility(View.VISIBLE);
+            }else{
+                btnFlash.setVisibility(View.INVISIBLE);
+
+            }
             StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             imageDimension = map.getOutputSizes(SurfaceTexture.class)[0];
 
@@ -293,7 +301,7 @@ public class MainActivity extends AppCompatActivity {
 //            int deviceOrientation = getWindowManager().getDefaultDisplay().getRotation();
 //            int totalRotation = sensorToDeviceRotation(characteristics, deviceOrientation);
 //            boolean swapRotation = totalRotation == 90 || totalRotation == 270;
-//            int rotatedWidth = widthCapturer.getWidth();
+//             int rotatedWidth = widthCapturer.getWidth();
 //            int rotatedHeight = widthCapturer.getHeight();
 //            if(swapRotation){
 //                rotatedWidth = widthCapturer.getHeight();
