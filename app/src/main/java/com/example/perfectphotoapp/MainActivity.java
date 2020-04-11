@@ -103,7 +103,11 @@ public class MainActivity extends AppCompatActivity {
     private int frameCount = 0;
     private Face[] faces = {};
 
+
     ImageButton btnFlash;
+    // preferences
+    boolean smileDetection;
+    boolean eyeDetection;
 
     private ImageView widthCapturer;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -715,7 +719,8 @@ public class MainActivity extends AppCompatActivity {
             faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 3, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
-        // If any faces found, draw a rectangle around it
+        
+        // process faces
         Rect[] rectFacesArray = faces.toArray();
         Face[] facesArray = new Face[rectFacesArray.length];
         for (int i = 0; i <rectFacesArray.length; i++) {
@@ -727,35 +732,36 @@ public class MainActivity extends AppCompatActivity {
             //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
             //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
 
+            if (smileDetection) {
+                // smile detection
+                MatOfRect smile = new MatOfRect();
 
-            // smile detection
-            MatOfRect smile = new MatOfRect();
+                if (smileCascadeClassifier != null) {
+                    smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
+                }
 
-            if (smileCascadeClassifier != null) {
-                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
+                if (smile.toArray().length == 0) {
+                    facesArray[i].smile = false;
+                } else {
+                    facesArray[i].smile = true;
+                }
             }
 
-            if (smile.toArray().length == 0) {
-                facesArray[i].smile = false;
-            }
-            else {
-                facesArray[i].smile = true;
-            }
+            if (eyeDetection) {
+                // eye detection
+                MatOfRect eyes = new MatOfRect();
 
-            // eye detection
-            MatOfRect eyes = new MatOfRect();
+                if (eyeCascadeClassifier != null) {
+                    eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
+                }
 
-            if(eyeCascadeClassifier != null) {
-                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
+                if (eyes.toArray().length >= 1) {
+                    facesArray[i].eyesOpen = true;
+                } else {
+                    facesArray[i].eyesOpen = false;
+                }
+                //Log.w("num eyes", String.format("%d",eyes.toArray().length));
             }
-
-            if (eyes.toArray().length >= 1) {
-                facesArray[i].eyesOpen = true;
-            }
-            else {
-                facesArray[i].eyesOpen = false;
-            }
-            //Log.w("num eyes", String.format("%d",eyes.toArray().length));
         }
         return facesArray;
     }

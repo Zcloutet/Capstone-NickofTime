@@ -30,6 +30,8 @@ public class CameraOverlayView extends View {
 
     // faces
     private Face[] faces;
+    boolean smileDetection = true;
+    boolean eyeDetection = true;
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -66,13 +68,27 @@ public class CameraOverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        int count = 0;
+
+        if (smileDetection) ++count;
+        if (eyeDetection) ++count;
+
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
+                int faceCount = 0;
+
+                if (smileDetection && faces[i].smile) {
+                    ++faceCount;
+                }
+                if (eyeDetection && faces[i].eyesOpen) {
+                    ++faceCount;
+                }
+
                 Paint paint;
-                if (faces[i].smile && faces[i].eyesOpen) {
+                if (faceCount == count) {
                     paint = greenPaint;
                 }
-                else if (!faces[i].smile && !faces[i].eyesOpen) {
+                else if (faceCount == 0) {
                     paint = redPaint;
                 }
                 else {
@@ -83,8 +99,17 @@ public class CameraOverlayView extends View {
 
                 canvas.drawRect(rect, paint);
 
-                drawSmiley(rect.centerX()-strokeWidth*12,rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
-                drawEye(rect.centerX()+strokeWidth*12,rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
+                int iconCount = 0;
+
+                if (smileDetection) {
+                    drawSmiley(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
+                    ++iconCount;
+                }
+                if (eyeDetection) {
+                    drawEye(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
+                    ++iconCount;
+
+                }
             }
         }
     }
@@ -166,6 +191,11 @@ public class CameraOverlayView extends View {
 
     public void updateSensorOrientation(int sensorOrientation) {
         this.sensorOrientation = sensorOrientation;
+    }
+
+    public void updatePreferences(boolean smileDetection, boolean faceDetection) {
+        this.smileDetection = smileDetection;
+        this.eyeDetection = faceDetection;
     }
 
     /*
