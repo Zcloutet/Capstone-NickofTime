@@ -21,6 +21,7 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String SMILESWITCH = "SMILESWITCH";
 
     private boolean eyeSwitchOnOff;
+    private boolean smileSwitchOnOff;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +44,12 @@ public class SettingsActivity extends AppCompatActivity {
                 saveEyeDetectionMode();
             }
         });
+        smileDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                saveSmileDetectionMode();
+            }
+        });
 
         loadData();
         updateSwitches();
@@ -56,12 +63,23 @@ public class SettingsActivity extends AppCompatActivity {
 //        Toast.makeText(this, "MODE CHANGED", Toast.LENGTH_SHORT).show();
     }
 
+    public void saveSmileDetectionMode(){
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(SMILESWITCH, smileDetection.isChecked());
+
+
+        editor.apply();
+    }
+
     public void loadData(){
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         eyeSwitchOnOff = sharedPreferences.getBoolean(EYESWITCH, true);
+        smileSwitchOnOff = sharedPreferences.getBoolean(SMILESWITCH, true);
     }
     public void updateSwitches(){
         eyeDetection.setChecked(eyeSwitchOnOff);
+        smileDetection.setChecked(smileSwitchOnOff);
     }
 
     public void goBack(){
