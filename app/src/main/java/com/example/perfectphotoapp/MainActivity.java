@@ -747,23 +747,20 @@ public class MainActivity extends AppCompatActivity {
             MatOfRect smile = new MatOfRect();
 
             if (smileCascadeClassifier != null) {
-                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.1, 10,2,new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size(maxsizesmile,maxsizesmile));
+                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.2, 20,2,new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size(maxsizesmile,maxsizesmile));
                 //smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
             }
-
             if (smile.toArray().length == 0) {
                 facesArray[i].smile = false;
             }
             else {
                 facesArray[i].smile = true;
             }
-
             // eye detection
             MatOfRect eyes = new MatOfRect();
             if(eyeCascadeClassifier != null) {
-                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.01, 8,2,new org.opencv.core.Size(eyesize,eyesize),new org.opencv.core.Size(maxsizeeye,maxsizeeye));
+                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.01, 20,2,new org.opencv.core.Size(eyesize,eyesize),new org.opencv.core.Size(maxsizeeye,maxsizeeye));
                 //eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.01, 17);
-
             }
 
             if (eyes.toArray().length >= 2) {
