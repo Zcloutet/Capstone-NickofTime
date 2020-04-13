@@ -7,6 +7,7 @@ INJECTED from C:\Users\paraj\Desktop\Capstone\04-02-2020\Capstone-NickofTime\ope
 INJECTED from C:\Users\paraj\Desktop\Capstone\04-02-2020\Capstone-NickofTime\openCVLibrary349\src\main\AndroidManifest.xml:2:1-7:12
 INJECTED from C:\Users\paraj\Desktop\Capstone\04-02-2020\Capstone-NickofTime\openCVLibrary349\src\main\AndroidManifest.xml:2:1-7:12
 INJECTED from C:\Users\paraj\Desktop\Capstone\04-02-2020\Capstone-NickofTime\openCVLibrary349\src\main\AndroidManifest.xml:2:1-7:12
+INJECTED from /Users/sam/Documents/CSC Capstone/Capstone-NickofTime/openCVLibrary349/src/main/AndroidManifest.xml:2:1-7:12
 	package
 		ADDED from C:\Users\paraj\Desktop\Capstone\04-02-2020\Capstone-NickofTime\openCVLibrary349\src\main\AndroidManifest.xml:3:7-27
 		INJECTED from C:\Users\paraj\Desktop\Capstone\04-02-2020\Capstone-NickofTime\openCVLibrary349\src\main\AndroidManifest.xml

@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
@@ -62,6 +63,10 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
+
+import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.SHARED_PREFS;
+import static com.example.perfectphotoapp.SettingsActivity.SMILESWITCH;
 
 //import org.opencv.android.
 //import org.opencv.core.Mat;
@@ -220,6 +225,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+        loadPreferences();
+
         if (textureView.isAvailable()) {
             openCamera(cameraIndex);
         } else {
@@ -269,6 +276,13 @@ public class MainActivity extends AppCompatActivity {
     public void openSettingsPage(){
         Intent intent = new Intent(this, SettingsActivity.class);
         startActivity(intent);
+    }
+
+    public void loadPreferences() {
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        eyeDetection = sharedPreferences.getBoolean(EYESWITCH, true);
+        smileDetection = sharedPreferences.getBoolean(SMILESWITCH, true);
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection);
     }
 
 
