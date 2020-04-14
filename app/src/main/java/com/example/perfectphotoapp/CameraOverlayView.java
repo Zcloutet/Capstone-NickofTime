@@ -28,6 +28,7 @@ public class CameraOverlayView extends View {
     private Paint yellowPaint;
     private Paint greenPaint;
     private Paint redTextPaint;
+    private Paint blackPaint;
 
     // faces
     private Face[] faces;
@@ -58,6 +59,11 @@ public class CameraOverlayView extends View {
         greenPaint.setColor(Color.GREEN);
         greenPaint.setStyle(Paint.Style.STROKE);
         greenPaint.setStrokeWidth(strokeWidth);
+
+        blackPaint = new Paint();
+        blackPaint.setColor(Color.BLACK);
+        blackPaint.setStyle(Paint.Style.STROKE);
+        blackPaint.setStrokeWidth(strokeWidth);
 
         redTextPaint = new Paint();
         redTextPaint.setColor(Color.RED);
@@ -159,8 +165,11 @@ public class CameraOverlayView extends View {
         if (eyesOpen) {
             canvas.drawArc(x-1.4f*r,y-0.27f*r,x+0.4f*r,y+3.73f*r,240,60,false,paint);
             canvas.drawArc(x-0.4f*r,y-0.27f*r,x+1.4f*r,y+3.73f*r,240,60,false,paint);
-            canvas.drawCircle(x-0.5f*r,y-0.08f*r,strokeWidth/2,paint);
-            canvas.drawCircle(x+0.5f*r,y-0.08f*r,strokeWidth/2,paint);
+
+            paint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(x-0.5f*r,y-0.04f*r,strokeWidth,paint);
+            canvas.drawCircle(x+0.5f*r,y-0.04f*r,strokeWidth,paint);
+            paint.setStyle(Paint.Style.STROKE);
         }
     }
 
