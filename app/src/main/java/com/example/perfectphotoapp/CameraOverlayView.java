@@ -27,9 +27,17 @@ public class CameraOverlayView extends View {
     private Paint redPaint;
     private Paint yellowPaint;
     private Paint greenPaint;
+    private Paint redTextPaint;
+    private Paint blackPaint;
 
     // faces
     private Face[] faces;
+    boolean motionDetected;
+
+    // preferences
+    boolean smileDetection = true;
+    boolean eyeDetection = true;
+    boolean motionDetection = true;
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -51,6 +59,16 @@ public class CameraOverlayView extends View {
         greenPaint.setColor(Color.GREEN);
         greenPaint.setStyle(Paint.Style.STROKE);
         greenPaint.setStrokeWidth(strokeWidth);
+
+        blackPaint = new Paint();
+        blackPaint.setColor(Color.BLACK);
+        blackPaint.setStyle(Paint.Style.STROKE);
+        blackPaint.setStrokeWidth(strokeWidth);
+
+        redTextPaint = new Paint();
+        redTextPaint.setColor(Color.RED);
+        redTextPaint.setStyle(Paint.Style.FILL);
+        redTextPaint.setTextSize(strokeWidth*10);
     }
 
     // make sure the size of the canvas is always known
@@ -66,13 +84,27 @@ public class CameraOverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        int count = 0;
+
+        if (smileDetection) ++count;
+        if (eyeDetection) ++count;
+
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
+                int faceCount = 0;
+
+                if (smileDetection && faces[i].smile) {
+                    ++faceCount;
+                }
+                if (eyeDetection && faces[i].eyesOpen) {
+                    ++faceCount;
+                }
+
                 Paint paint;
-                if (faces[i].smile && faces[i].eyesOpen) {
+                if (faceCount == count) {
                     paint = greenPaint;
                 }
-                else if (!faces[i].smile && !faces[i].eyesOpen) {
+                else if (faceCount == 0) {
                     paint = redPaint;
                 }
                 else {
@@ -83,17 +115,33 @@ public class CameraOverlayView extends View {
 
                 canvas.drawRect(rect, paint);
 
-                drawSmiley(rect.centerX()-strokeWidth*12,rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
-                drawEye(rect.centerX()+strokeWidth*12,rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
+                int iconCount = 0;
+
+                if (smileDetection) {
+                    drawSmiley(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
+                    ++iconCount;
+                }
+                if (eyeDetection) {
+                    drawEye(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
+                    ++iconCount;
+
+                }
             }
+        }
+
+        if (motionDetection && motionDetected) {
+            Rect bounds = new Rect();
+            redTextPaint.getTextBounds("Motion Detected", 0, 14, bounds);
+            canvas.drawText("Motion Detected", (w-bounds.width())/2, h*0.85f, redTextPaint);
         }
     }
 
     // update the faces (and record the image width and height from which they were recognized)
-    public void updateFaces(Face[] faces, int imagew, int imageh) {
+    public void updateFaces(Face[] faces, int imagew, int imageh, boolean motionDetected) {
         this.faces = faces;
         this.imagew = imagew;
         this.imageh = imageh;
+        this.motionDetected = motionDetected;
 
         invalidate(); // makes it redraw the canvas
     }
@@ -117,8 +165,11 @@ public class CameraOverlayView extends View {
         if (eyesOpen) {
             canvas.drawArc(x-1.4f*r,y-0.27f*r,x+0.4f*r,y+3.73f*r,240,60,false,paint);
             canvas.drawArc(x-0.4f*r,y-0.27f*r,x+1.4f*r,y+3.73f*r,240,60,false,paint);
-            canvas.drawCircle(x-0.5f*r,y-0.08f*r,strokeWidth/2,paint);
-            canvas.drawCircle(x+0.5f*r,y-0.08f*r,strokeWidth/2,paint);
+
+            paint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(x-0.5f*r,y-0.04f*r,strokeWidth,paint);
+            canvas.drawCircle(x+0.5f*r,y-0.04f*r,strokeWidth,paint);
+            paint.setStyle(Paint.Style.STROKE);
         }
     }
 
@@ -166,6 +217,12 @@ public class CameraOverlayView extends View {
 
     public void updateSensorOrientation(int sensorOrientation) {
         this.sensorOrientation = sensorOrientation;
+    }
+
+    public void updatePreferences(boolean smileDetection, boolean faceDetection, boolean motionDetection) {
+        this.smileDetection = smileDetection;
+        this.eyeDetection = faceDetection;
+        this.motionDetection = motionDetection;
     }
 
     /*

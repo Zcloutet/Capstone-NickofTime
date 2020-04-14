@@ -2,6 +2,7 @@ package com.example.perfectphotoapp;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -28,6 +29,8 @@ public class GalleryActivity extends AppCompatActivity {
     File currentImage;
     int currentIndex = 0;
     int totalImages = 0;
+    private Uri imageUri;
+    private Intent intent;
 
     private void initialize(){
 
@@ -50,7 +53,7 @@ public class GalleryActivity extends AppCompatActivity {
         selectedImage= findViewById(R.id.imageView);
 
 
-        Button btnNext,btnPrevious,btnDelete;
+        Button btnNext,btnPrevious,btnDelete, shareButton;
 
 
         selectedImage.setOnTouchListener(new View.OnTouchListener() {
@@ -96,6 +99,20 @@ public class GalleryActivity extends AppCompatActivity {
         btnNext = findViewById(R.id.next);
         btnPrevious = findViewById(R.id.previous);
         btnDelete = findViewById(R.id.delete);
+        shareButton = findViewById(R.id.share);
+
+        shareButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(totalImages == 0 ||currentImage==null){
+                    return;
+                }
+                Intent myIntent = new Intent(Intent.ACTION_SEND);
+                myIntent.setType("*/*");
+                myIntent.putExtra(Intent.EXTRA_STREAM, currentImage);
+                startActivity(Intent.createChooser(myIntent, "Share Using"));
+            }
+        });
 
         btnNext.setOnClickListener(new View.OnClickListener() {
             @Override

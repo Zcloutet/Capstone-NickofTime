@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
@@ -49,10 +50,12 @@ import androidx.core.content.ContextCompat;
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
@@ -62,6 +65,11 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
+
+import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.MOTIONSWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.SHARED_PREFS;
+import static com.example.perfectphotoapp.SettingsActivity.SMILESWITCH;
 
 //import org.opencv.android.
 //import org.opencv.core.Mat;
@@ -102,8 +110,15 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasFlash ;
     private int frameCount = 0;
     private Face[] faces = {};
+    private Mat previousFrameMat;
+
 
     ImageButton btnFlash;
+
+    // preferences
+    boolean smileDetection;
+    boolean eyeDetection;
+    boolean motionDetection;
 
     private ImageView widthCapturer;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -210,11 +225,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-
     @Override
     protected void onResume() {
         super.onResume();
+
+        loadPreferences();
 
         if (textureView.isAvailable()) {
             openCamera(cameraIndex);
@@ -267,8 +282,17 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void loadPreferences() {
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        eyeDetection = sharedPreferences.getBoolean(EYESWITCH, true);
+        smileDetection = sharedPreferences.getBoolean(SMILESWITCH, true);
+        motionDetection = sharedPreferences.getBoolean(MOTIONSWITCH, true);
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, motionDetection);
+    }
+
 
     // CAMERA HANDLING
+
     CameraCharacteristics cameraInfo;
 //open camera and create capturesession
     private void openCamera(int cameraIndex) {
@@ -661,7 +685,16 @@ public class MainActivity extends AppCompatActivity {
                         //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
                         Face[] newFaces = Cascadeframe(mRGB);
                         faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
-                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
+
+                        boolean motion = false;
+
+                        if (previousFrameMat != null && motionDetection == true) {
+                            motion = motionDetect(previousFrameMat, grayscaleImage);
+                        }
+
+                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight(), motion);
+
+                        previousFrameMat = grayscaleImage;
                     }
                 } catch (Exception e) {
                     Log.w(TAG, e.getMessage());
@@ -715,7 +748,8 @@ public class MainActivity extends AppCompatActivity {
             faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 3, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
-        // If any faces found, draw a rectangle around it
+        
+        // process faces
         Rect[] rectFacesArray = faces.toArray();
         Face[] facesArray = new Face[rectFacesArray.length];
         for (int i = 0; i <rectFacesArray.length; i++) {
@@ -727,37 +761,50 @@ public class MainActivity extends AppCompatActivity {
             //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
             //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
 
+            if (smileDetection) {
+                // smile detection
+                MatOfRect smile = new MatOfRect();
 
-            // smile detection
-            MatOfRect smile = new MatOfRect();
+                if (smileCascadeClassifier != null) {
+                    smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
+                }
 
-            if (smileCascadeClassifier != null) {
-                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
+                if (smile.toArray().length == 0) {
+                    facesArray[i].smile = false;
+                } else {
+                    facesArray[i].smile = true;
+                }
             }
 
-            if (smile.toArray().length == 0) {
-                facesArray[i].smile = false;
-            }
-            else {
-                facesArray[i].smile = true;
-            }
+            if (eyeDetection) {
+                // eye detection
+                MatOfRect eyes = new MatOfRect();
 
-            // eye detection
-            MatOfRect eyes = new MatOfRect();
+                if (eyeCascadeClassifier != null) {
+                    eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
+                }
 
-            if(eyeCascadeClassifier != null) {
-                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
+                if (eyes.toArray().length >= 1) {
+                    facesArray[i].eyesOpen = true;
+                } else {
+                    facesArray[i].eyesOpen = false;
+                }
+                //Log.w("num eyes", String.format("%d",eyes.toArray().length));
             }
-
-            if (eyes.toArray().length >= 1) {
-                facesArray[i].eyesOpen = true;
-            }
-            else {
-                facesArray[i].eyesOpen = false;
-            }
-            //Log.w("num eyes", String.format("%d",eyes.toArray().length));
         }
         return facesArray;
+    }
+
+    public boolean motionDetect(Mat prevFrame, Mat currentFrame) {
+        Mat diffFrame = new Mat();
+        Core.absdiff(prevFrame, currentFrame, diffFrame);
+
+        double threshold = 20;
+        Imgproc.threshold(diffFrame, diffFrame, threshold, 1, Imgproc.THRESH_BINARY);
+
+        Scalar mean = Core.mean(diffFrame);
+
+        return (mean.val[0] > 0.05);
     }
 
     /*
