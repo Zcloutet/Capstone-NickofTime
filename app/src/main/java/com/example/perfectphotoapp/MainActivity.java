@@ -50,10 +50,12 @@ import androidx.core.content.ContextCompat;
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
@@ -65,6 +67,7 @@ import java.util.Arrays;
 import java.util.Date;
 
 import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.MOTIONSWITCH;
 import static com.example.perfectphotoapp.SettingsActivity.SHARED_PREFS;
 import static com.example.perfectphotoapp.SettingsActivity.SMILESWITCH;
 
@@ -107,12 +110,15 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasFlash ;
     private int frameCount = 0;
     private Face[] faces = {};
+    private Mat previousFrameMat;
 
 
     ImageButton btnFlash;
+
     // preferences
     boolean smileDetection;
     boolean eyeDetection;
+    boolean motionDetection;
 
     private ImageView widthCapturer;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -219,8 +225,6 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-
     @Override
     protected void onResume() {
         super.onResume();
@@ -282,11 +286,13 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         eyeDetection = sharedPreferences.getBoolean(EYESWITCH, true);
         smileDetection = sharedPreferences.getBoolean(SMILESWITCH, true);
-        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection);
+        motionDetection = sharedPreferences.getBoolean(MOTIONSWITCH, true);
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, motionDetection);
     }
 
 
     // CAMERA HANDLING
+
     CameraCharacteristics cameraInfo;
 //open camera and create capturesession
     private void openCamera(int cameraIndex) {
@@ -679,7 +685,16 @@ public class MainActivity extends AppCompatActivity {
                         //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
                         Face[] newFaces = Cascadeframe(mRGB);
                         faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
-                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
+
+                        boolean motion = false;
+
+                        if (previousFrameMat != null && motionDetection == true) {
+                            motion = motionDetect(previousFrameMat, grayscaleImage);
+                        }
+
+                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight(), motion);
+
+                        previousFrameMat = grayscaleImage;
                     }
                 } catch (Exception e) {
                     Log.w(TAG, e.getMessage());
@@ -778,6 +793,18 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return facesArray;
+    }
+
+    public boolean motionDetect(Mat prevFrame, Mat currentFrame) {
+        Mat diffFrame = new Mat();
+        Core.absdiff(prevFrame, currentFrame, diffFrame);
+
+        double threshold = 20;
+        Imgproc.threshold(diffFrame, diffFrame, threshold, 1, Imgproc.THRESH_BINARY);
+
+        Scalar mean = Core.mean(diffFrame);
+
+        return (mean.val[0] > 0.05);
     }
 
     /*

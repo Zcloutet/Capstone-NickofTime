@@ -8,6 +8,16 @@
     tools:context=".SettingsActivity">
 
 
+    <Switch
+        android:id="@+id/eyeDetection"
+        android:layout_width="159dp"
+        android:layout_height="49dp"
+        android:text="Eye Detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.793"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/smileDetection" />
+
     <ImageButton
         android:id="@+id/go_back"
         android:layout_width="55dp"
@@ -38,10 +48,11 @@
         app:layout_constraintTop_toBottomOf="@+id/textView" />
 
     <Switch
-        android:id="@+id/eyeDetection"
+        android:id="@+id/motionDetection"
         android:layout_width="159dp"
         android:layout_height="49dp"
-        android:text="Eye Detection"
+        android:layout_marginTop="48dp"
+        android:text="Motion Detection"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.793"
         app:layout_constraintStart_toStartOf="parent"

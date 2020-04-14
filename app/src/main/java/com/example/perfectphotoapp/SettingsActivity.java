@@ -15,13 +15,16 @@ public class SettingsActivity extends AppCompatActivity {
 
     private Switch eyeDetection;
     private Switch smileDetection;
+    private Switch motionDetection;
 
     public static final String SHARED_PREFS = "sharedPrefs";
     public static final String EYESWITCH = "EYESWITCH";
     public static final String SMILESWITCH = "SMILESWITCH";
+    public static final String MOTIONSWITCH = "MOTIONSWITCH";
 
     private boolean eyeSwitchOnOff;
     private boolean smileSwitchOnOff;
+    private boolean motionSwitchOnOff;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +40,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         eyeDetection = (Switch) findViewById(R.id.eyeDetection);
         smileDetection = (Switch) findViewById(R.id.smileDetection);
+        motionDetection = (Switch) findViewById(R.id.motionDetection);
 
         eyeDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -48,6 +52,12 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 saveSmileDetectionMode();
+            }
+        });
+        motionDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                saveMotionDetectionMode();
             }
         });
 
@@ -72,14 +82,25 @@ public class SettingsActivity extends AppCompatActivity {
         editor.apply();
     }
 
+    public void saveMotionDetectionMode(){
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(MOTIONSWITCH, motionDetection.isChecked());
+
+
+        editor.apply();
+    }
+
     public void loadData(){
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         eyeSwitchOnOff = sharedPreferences.getBoolean(EYESWITCH, true);
         smileSwitchOnOff = sharedPreferences.getBoolean(SMILESWITCH, true);
+        motionSwitchOnOff = sharedPreferences.getBoolean(MOTIONSWITCH, true);
     }
     public void updateSwitches(){
         eyeDetection.setChecked(eyeSwitchOnOff);
         smileDetection.setChecked(smileSwitchOnOff);
+        motionDetection.setChecked(motionSwitchOnOff);
     }
 
     public void goBack(){

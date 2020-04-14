@@ -27,11 +27,16 @@ public class CameraOverlayView extends View {
     private Paint redPaint;
     private Paint yellowPaint;
     private Paint greenPaint;
+    private Paint redTextPaint;
 
     // faces
     private Face[] faces;
+    boolean motionDetected;
+
+    // preferences
     boolean smileDetection = true;
     boolean eyeDetection = true;
+    boolean motionDetection = true;
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -53,6 +58,11 @@ public class CameraOverlayView extends View {
         greenPaint.setColor(Color.GREEN);
         greenPaint.setStyle(Paint.Style.STROKE);
         greenPaint.setStrokeWidth(strokeWidth);
+
+        redTextPaint = new Paint();
+        redTextPaint.setColor(Color.RED);
+        redTextPaint.setStyle(Paint.Style.FILL);
+        redTextPaint.setTextSize(strokeWidth*10);
     }
 
     // make sure the size of the canvas is always known
@@ -112,13 +122,20 @@ public class CameraOverlayView extends View {
                 }
             }
         }
+
+        if (motionDetection && motionDetected) {
+            Rect bounds = new Rect();
+            redTextPaint.getTextBounds("Motion Detected", 0, 14, bounds);
+            canvas.drawText("Motion Detected", (w-bounds.width())/2, h*0.85f, redTextPaint);
+        }
     }
 
     // update the faces (and record the image width and height from which they were recognized)
-    public void updateFaces(Face[] faces, int imagew, int imageh) {
+    public void updateFaces(Face[] faces, int imagew, int imageh, boolean motionDetected) {
         this.faces = faces;
         this.imagew = imagew;
         this.imageh = imageh;
+        this.motionDetected = motionDetected;
 
         invalidate(); // makes it redraw the canvas
     }
@@ -193,9 +210,10 @@ public class CameraOverlayView extends View {
         this.sensorOrientation = sensorOrientation;
     }
 
-    public void updatePreferences(boolean smileDetection, boolean faceDetection) {
+    public void updatePreferences(boolean smileDetection, boolean faceDetection, boolean motionDetection) {
         this.smileDetection = smileDetection;
         this.eyeDetection = faceDetection;
+        this.motionDetection = motionDetection;
     }
 
     /*
