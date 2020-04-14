@@ -35,6 +35,8 @@ public class GalleryActivity extends AppCompatActivity {
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
         images = directory.listFiles();
 
+        currentIndex = getIntent().getIntExtra("IMAGE_ID",0);
+
         totalImages = images.length;
     }
     float x1,x2;

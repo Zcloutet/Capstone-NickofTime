@@ -163,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                startActivity(new Intent(MainActivity.this,GalleryActivity.class));
+                startActivity(new Intent(MainActivity.this,GalleryList.class));
 //                finish();
             }
         });
@@ -891,4 +891,5 @@ public class MainActivity extends AppCompatActivity {
         Log.d("CONTROL_MAX_REGIONS",String.valueOf(cameraInfo.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF)));
         return cameraInfo.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) >= 1;
     }
+
 }
