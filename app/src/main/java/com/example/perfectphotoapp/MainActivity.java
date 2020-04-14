@@ -105,6 +105,8 @@ public class MainActivity extends AppCompatActivity {
     private CascadeClassifier eyeCascadeClassifier;
     private Mat grayscaleImage;
     private int absoluteFaceSize;
+    private int eyesize;
+    private int smilesize;
     private boolean flash = false;
     private ImageReader opencvImageReader,captureImageReader;
     private boolean hasFlash ;
@@ -680,7 +682,7 @@ public class MainActivity extends AppCompatActivity {
                         Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
                         grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
                         // The faces will be a 20% of the height of the screen
-                        absoluteFaceSize = (int) (image.getHeight() * 0.20);
+                        absoluteFaceSize = (int) (image.getHeight() * 0.10);
 
                         //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
                         Face[] newFaces = Cascadeframe(mRGB);
@@ -760,13 +762,21 @@ public class MainActivity extends AppCompatActivity {
             facesArray[i].Crop(aInputFrame,rectFace);
             //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
             //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
-
+            org.opencv.core.Size s =facesArray[i].croppedimg.size();
+            double rows = s.height;
+            Log.i(TAG, "height" +rows);
+            eyesize = (int)(rows * 0.01);
+            smilesize = (int)(rows * .1);
+            int maxsizesmile = (int)(rows*.5);
+            int maxsizeeye = (int)(rows*.2);
             if (smileDetection) {
                 // smile detection
                 MatOfRect smile = new MatOfRect();
 
                 if (smileCascadeClassifier != null) {
-                    smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
+                    smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.2, 20,2,
+                            new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size(maxsizesmile,maxsizesmile));
+                    //smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
                 }
 
                 if (smile.toArray().length == 0) {
@@ -781,10 +791,11 @@ public class MainActivity extends AppCompatActivity {
                 MatOfRect eyes = new MatOfRect();
 
                 if (eyeCascadeClassifier != null) {
-                    eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
+                    eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.01, 20,2,
+                            new org.opencv.core.Size(eyesize,eyesize),new org.opencv.core.Size(maxsizeeye,maxsizeeye));
                 }
 
-                if (eyes.toArray().length >= 1) {
+                if (eyes.toArray().length >= 2) {
                     facesArray[i].eyesOpen = true;
                 } else {
                     facesArray[i].eyesOpen = false;
