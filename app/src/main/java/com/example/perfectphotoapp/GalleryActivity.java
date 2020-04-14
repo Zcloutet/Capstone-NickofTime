@@ -14,6 +14,7 @@ import com.google.android.material.snackbar.Snackbar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -37,8 +38,11 @@ public class GalleryActivity extends AppCompatActivity {
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
         images = directory.listFiles();
 
+        currentIndex = getIntent().getIntExtra("IMAGE_ID",0);
+
         totalImages = images.length;
     }
+    float x1,x2;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +54,47 @@ public class GalleryActivity extends AppCompatActivity {
 
 
         Button btnNext,btnPrevious,btnDelete, shareButton;
+
+
+        selectedImage.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent event) {
+//                Toast.makeText(GalleryActivity.this, "lol", Toast.LENGTH_SHORT).show();
+
+                final int MIN_DISTANCE = 150;
+                switch(event.getAction())
+                {
+                    case MotionEvent.ACTION_DOWN:
+                        x1 = event.getX();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        x2 = event.getX();
+                        float deltaX = x2 - x1;
+
+                        if (Math.abs(deltaX) > MIN_DISTANCE)
+                        {
+                            // Left to Right swipe action
+                            if (x2 > x1)
+                            {
+                                doNext();
+
+//                                Toast.makeText(this, "Left to Right swipe [Next]", Toast.LENGTH_SHORT).show ();
+                            }
+
+                            // Right to left swipe action
+                            else
+                            {
+                                doPrevious();
+//                                Toast.makeText(this, "Right to Left swipe [Previous]", Toast.LENGTH_SHORT).show ();
+                            }
+
+                        }
+
+                        break;
+                }
+                return true;
+            }
+        });
 
         btnNext = findViewById(R.id.next);
         btnPrevious = findViewById(R.id.previous);
@@ -72,26 +117,14 @@ public class GalleryActivity extends AppCompatActivity {
         btnNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(totalImages == 0){
-                    currentIndex = 0;
-                    loadImage();
-                    return;
-                }
-                currentIndex = (currentIndex+1)% totalImages;
-                loadImage();
+               doNext();
             }
         });
 
         btnPrevious.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                currentIndex = (currentIndex-1);
-                if(currentIndex<0){
-                    currentIndex = 0;
-                    Toast.makeText(GalleryActivity.this, "Can't load previous image", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                loadImage();
+                doPrevious();
             }
         });
 
@@ -114,6 +147,27 @@ public class GalleryActivity extends AppCompatActivity {
         });
 
 
+    }
+
+    private void doNext(){
+        if(totalImages == 0){
+            currentIndex = 0;
+            loadImage();
+            return;
+        }
+        currentIndex = (currentIndex+1)% totalImages;
+        loadImage();
+    }
+
+
+    private void doPrevious(){
+        currentIndex = (currentIndex-1);
+        if(currentIndex<0){
+            currentIndex = 0;
+            Toast.makeText(this, "Can't load previous image", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        loadImage();
     }
 
     @Override
