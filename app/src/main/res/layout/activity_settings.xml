@@ -9,25 +9,21 @@
     tools:context=".SettingsActivity">
 
 
-
-
-
-
     <ImageButton
         android:id="@+id/go_back"
         android:layout_width="55dp"
         android:layout_height="55dp"
         android:background="?selectableItemBackgroundBorderless"
         android:scaleType="fitXY"
-        android:src="@drawable/go_back"
+        android:src="@drawable/ic_keyboard_arrow_left_black_24dp"
         app:layout_constraintStart_toStartOf="parent"
-        tools:layout_editor_absoluteY="0dp" />
+        tools:layout_editor_absoluteY="95dp" />
 
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="104dp"
+        android:layout_marginTop="52dp"
         android:fontFamily="@font/abhaya_libre_medium"
         android:text="Camera Settings"
         android:textSize="32dp"
@@ -37,23 +33,23 @@
 
     <Switch
         android:id="@+id/smileDetection"
-        android:layout_width="188dp"
-        android:layout_height="60dp"
-        android:layout_marginTop="24dp"
+        android:layout_width="350dp"
+        android:layout_height="36dp"
+        android:layout_marginTop="76dp"
         android:text="Smile Detection"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.56"
+        app:layout_constraintHorizontal_bias="0.152"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
 
     <Switch
         android:id="@+id/eyeDetection"
-        android:layout_width="159dp"
-        android:layout_height="49dp"
-        android:layout_marginTop="12dp"
+        android:layout_width="352dp"
+        android:layout_height="27dp"
+        android:layout_marginTop="20dp"
         android:text="Eye Detection"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.611"
+        app:layout_constraintHorizontal_bias="0.145"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/smileDetection" />
 </androidx.constraintlayout.widget.ConstraintLayout>
