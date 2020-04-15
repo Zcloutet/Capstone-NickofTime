@@ -747,7 +747,7 @@ public class MainActivity extends AppCompatActivity {
         // Use the classifier to detect faces
 
         if (faceCascadeClassifier != null) {
-            faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 3, 2,
+            faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 5, 2,
                     new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
         }
         
