@@ -239,10 +239,10 @@ public class MainActivity extends AppCompatActivity {
             textureView.setSurfaceTextureListener(textureListener);
         }
 
-        OpenCVLoader.initDebug();
-        initializeOpenCVDependencies();
+        //OpenCVLoader.initDebug();
+        //initializeOpenCVDependencies();
         startBackgroundThread();
-        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
     }
 
     @Override
@@ -679,11 +679,11 @@ public class MainActivity extends AppCompatActivity {
 
                         Mat mRGB = getYUV2Mat(image,nv21);
                         //end conversion
-                        Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+                        //Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
                         grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
                         // The faces will be a 20% of the height of the screen
                         absoluteFaceSize = (int) (image.getHeight() * 0.10);
-
+                        eyesize = (int)(image.getHeight() * 0.01);
                         //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
                         Face[] newFaces = Cascadeframe(mRGB);
                         faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
@@ -741,7 +741,7 @@ public class MainActivity extends AppCompatActivity {
 
     public Face[] Cascadeframe(Mat aInputFrame) {
         // Create a grayscale image
-        Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
+        Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGB2GRAY);
         MatOfRect faces = new MatOfRect();
 
         // Use the classifier to detect faces
@@ -764,19 +764,19 @@ public class MainActivity extends AppCompatActivity {
             //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
             org.opencv.core.Size s =facesArray[i].croppedimg.size();
             double rows = s.height;
-            Log.i(TAG, "height" +rows);
+            //Log.i(TAG, "height face" +rows);
             eyesize = (int)(rows * 0.01);
-            smilesize = (int)(rows * .1);
-            int maxsizesmile = (int)(rows*.5);
-            int maxsizeeye = (int)(rows*.2);
+            //smilesize = (int)(rows * .1);
+            //int maxsizesmile = (int)(rows*.3);
+            //int maxsizeeye = (int)(rows*.15);
             if (smileDetection) {
                 // smile detection
                 MatOfRect smile = new MatOfRect();
 
                 if (smileCascadeClassifier != null) {
-                    smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.2, 20,2,
-                            new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size(maxsizesmile,maxsizesmile));
-                    //smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
+                    //smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.2, 20,2,
+                            //new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size());
+                    smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
                 }
 
                 if (smile.toArray().length == 0) {
@@ -791,8 +791,9 @@ public class MainActivity extends AppCompatActivity {
                 MatOfRect eyes = new MatOfRect();
 
                 if (eyeCascadeClassifier != null) {
-                    eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.01, 20,2,
-                            new org.opencv.core.Size(eyesize,eyesize),new org.opencv.core.Size(maxsizeeye,maxsizeeye));
+                    eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.1, 8,2,
+                            new org.opencv.core.Size(eyesize,eyesize));
+                    //eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.1,8);
                 }
 
                 if (eyes.toArray().length >= 2) {
