@@ -239,10 +239,10 @@ public class MainActivity extends AppCompatActivity {
             textureView.setSurfaceTextureListener(textureListener);
         }
 
-        //OpenCVLoader.initDebug();
-        //initializeOpenCVDependencies();
+        OpenCVLoader.initDebug();
+        initializeOpenCVDependencies();
         startBackgroundThread();
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
     }
 
     @Override
