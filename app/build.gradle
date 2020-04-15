@@ -20,6 +20,11 @@ android {
     testOptions {
         unitTests.includeAndroidResources = true
     }
+    externalNativeBuild {
+        ndkBuild {
+            path file('src/main/jni/OpenCV.mk')
+        }
+    }
 }
 
 dependencies {
