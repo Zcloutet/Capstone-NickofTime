@@ -32,12 +32,13 @@ public class CameraOverlayView extends View {
 
     // faces
     private Face[] faces;
-    boolean motionDetected;
+    boolean generalMotionDetected;
 
     // preferences
     boolean smileDetection = true;
     boolean eyeDetection = true;
-    boolean motionDetection = true;
+    boolean generalMotionDetection = true;
+    boolean facialMotionDetection = true;
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -88,6 +89,7 @@ public class CameraOverlayView extends View {
 
         if (smileDetection) ++count;
         if (eyeDetection) ++count;
+        if (facialMotionDetection) ++count;
 
         if (faces != null) {
             for (int i=0; i<faces.length; i++) {
@@ -97,6 +99,9 @@ public class CameraOverlayView extends View {
                     ++faceCount;
                 }
                 if (eyeDetection && faces[i].eyesOpen) {
+                    ++faceCount;
+                }
+                if (facialMotionDetection && faces[i].noMotion) {
                     ++faceCount;
                 }
 
@@ -121,15 +126,18 @@ public class CameraOverlayView extends View {
                     drawSmiley(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
                     ++iconCount;
                 }
+                if (facialMotionDetection) {
+                    drawMotion(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
+                    ++iconCount;
+                }
                 if (eyeDetection) {
                     drawEye(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
                     ++iconCount;
-
                 }
             }
         }
 
-        if (motionDetection && motionDetected) {
+        if (generalMotionDetection && generalMotionDetected) {
             Rect bounds = new Rect();
             redTextPaint.getTextBounds("Motion Detected", 0, 14, bounds);
             canvas.drawText("Motion Detected", (w-bounds.width())/2, h*0.85f, redTextPaint);
@@ -137,11 +145,11 @@ public class CameraOverlayView extends View {
     }
 
     // update the faces (and record the image width and height from which they were recognized)
-    public void updateFaces(Face[] faces, int imagew, int imageh, boolean motionDetected) {
+    public void updateFaces(Face[] faces, int imagew, int imageh, boolean generalMotionDetected) {
         this.faces = faces;
         this.imagew = imagew;
         this.imageh = imageh;
-        this.motionDetected = motionDetected;
+        this.generalMotionDetected = generalMotionDetected;
 
         invalidate(); // makes it redraw the canvas
     }
@@ -170,6 +178,23 @@ public class CameraOverlayView extends View {
             canvas.drawCircle(x-0.5f*r,y-0.04f*r,strokeWidth,paint);
             canvas.drawCircle(x+0.5f*r,y-0.04f*r,strokeWidth,paint);
             paint.setStyle(Paint.Style.STROKE);
+        }
+    }
+
+    public void drawMotion(int x, int y, int r, Paint paint, Canvas canvas, boolean noMotion) {
+        if (noMotion) {
+            canvas.drawCircle(x,y,r*2f/3f,paint);
+        }
+        else {
+            canvas.drawCircle(x+r*2/5,y,r*3/5,paint);
+
+            paint.setAlpha(159);
+            canvas.drawCircle(x,y,r*3/5,paint);
+
+            paint.setAlpha(95);
+            canvas.drawCircle(x-r*2/5,y,r*3f/5,paint);
+
+            paint.setAlpha(255);
         }
     }
 
@@ -219,10 +244,11 @@ public class CameraOverlayView extends View {
         this.sensorOrientation = sensorOrientation;
     }
 
-    public void updatePreferences(boolean smileDetection, boolean faceDetection, boolean motionDetection) {
+    public void updatePreferences(boolean smileDetection, boolean faceDetection, boolean generalMotionDetection, boolean facialMotionDetection) {
         this.smileDetection = smileDetection;
         this.eyeDetection = faceDetection;
-        this.motionDetection = motionDetection;
+        this.generalMotionDetection = generalMotionDetection;
+        this.facialMotionDetection = facialMotionDetection;
     }
 
     /*

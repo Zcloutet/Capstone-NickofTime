@@ -20,7 +20,7 @@ public class Face {
     public int age;
     public boolean smile;
     public boolean eyesOpen;
-    public boolean motion;
+    public boolean noMotion;
 
     public Face(int left, int top, int right, int bottom) {
         this.left = left;

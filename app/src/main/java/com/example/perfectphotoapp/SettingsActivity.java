@@ -15,16 +15,19 @@ public class SettingsActivity extends AppCompatActivity {
 
     private Switch eyeDetection;
     private Switch smileDetection;
-    private Switch motionDetection;
+    private Switch generalMotionDetection;
+    private Switch facialMotionDetection;
 
     public static final String SHARED_PREFS = "sharedPrefs";
     public static final String EYESWITCH = "EYESWITCH";
     public static final String SMILESWITCH = "SMILESWITCH";
-    public static final String MOTIONSWITCH = "MOTIONSWITCH";
+    public static final String GENERALMOTIONSWITCH = "GENERALMOTIONSWITCH";
+    public static final String FACIALMOTIONSWITCH = "FACIALMOTIONSWITCH";
 
     private boolean eyeSwitchOnOff;
     private boolean smileSwitchOnOff;
-    private boolean motionSwitchOnOff;
+    private boolean generalMotionSwitchOnOff;
+    private boolean facialMotionSwitchOnOff;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +43,8 @@ public class SettingsActivity extends AppCompatActivity {
 
         eyeDetection = (Switch) findViewById(R.id.eyeDetection);
         smileDetection = (Switch) findViewById(R.id.smileDetection);
-        motionDetection = (Switch) findViewById(R.id.motionDetection);
+        generalMotionDetection = (Switch) findViewById(R.id.generalMotionDetection);
+        facialMotionDetection = (Switch) findViewById(R.id.facialMotionDetection);
 
         eyeDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -54,10 +58,16 @@ public class SettingsActivity extends AppCompatActivity {
                 saveSmileDetectionMode();
             }
         });
-        motionDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        generalMotionDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                saveMotionDetectionMode();
+                saveGeneralMotionDetectionMode();
+            }
+        });
+        facialMotionDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                saveFacialMotionDetectionMode();
             }
         });
 
@@ -82,10 +92,19 @@ public class SettingsActivity extends AppCompatActivity {
         editor.apply();
     }
 
-    public void saveMotionDetectionMode(){
+    public void saveGeneralMotionDetectionMode(){
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putBoolean(MOTIONSWITCH, motionDetection.isChecked());
+        editor.putBoolean(GENERALMOTIONSWITCH, generalMotionDetection.isChecked());
+
+
+        editor.apply();
+    }
+
+    public void saveFacialMotionDetectionMode(){
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(FACIALMOTIONSWITCH, facialMotionDetection.isChecked());
 
 
         editor.apply();
@@ -95,12 +114,14 @@ public class SettingsActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         eyeSwitchOnOff = sharedPreferences.getBoolean(EYESWITCH, true);
         smileSwitchOnOff = sharedPreferences.getBoolean(SMILESWITCH, true);
-        motionSwitchOnOff = sharedPreferences.getBoolean(MOTIONSWITCH, true);
+        generalMotionSwitchOnOff = sharedPreferences.getBoolean(GENERALMOTIONSWITCH, true);
+        facialMotionSwitchOnOff = sharedPreferences.getBoolean(FACIALMOTIONSWITCH, true);
     }
     public void updateSwitches(){
         eyeDetection.setChecked(eyeSwitchOnOff);
         smileDetection.setChecked(smileSwitchOnOff);
-        motionDetection.setChecked(motionSwitchOnOff);
+        generalMotionDetection.setChecked(generalMotionSwitchOnOff);
+        facialMotionDetection.setChecked(facialMotionSwitchOnOff);
     }
 
     public void goBack(){

@@ -67,7 +67,8 @@ import java.util.Arrays;
 import java.util.Date;
 
 import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
-import static com.example.perfectphotoapp.SettingsActivity.MOTIONSWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.FACIALMOTIONSWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.GENERALMOTIONSWITCH;
 import static com.example.perfectphotoapp.SettingsActivity.SHARED_PREFS;
 import static com.example.perfectphotoapp.SettingsActivity.SMILESWITCH;
 
@@ -117,7 +118,8 @@ public class MainActivity extends AppCompatActivity {
     // preferences
     boolean smileDetection;
     boolean eyeDetection;
-    boolean motionDetection;
+    boolean generalMotionDetection;
+    boolean facialMotionDetection;
 
     private ImageView widthCapturer;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -285,8 +287,9 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         eyeDetection = sharedPreferences.getBoolean(EYESWITCH, true);
         smileDetection = sharedPreferences.getBoolean(SMILESWITCH, true);
-        motionDetection = sharedPreferences.getBoolean(MOTIONSWITCH, true);
-        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, motionDetection);
+        generalMotionDetection = sharedPreferences.getBoolean(GENERALMOTIONSWITCH, true);
+        facialMotionDetection = sharedPreferences.getBoolean(FACIALMOTIONSWITCH, true);
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, generalMotionDetection, facialMotionDetection);
     }
 
 
@@ -670,13 +673,13 @@ public class MainActivity extends AppCompatActivity {
                         faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
 
                         // detect motion in the whole image
-                        boolean motion = false;
-                        if (previousFrameMat != null && motionDetection == true) {
-                            motion = motionDetect(previousFrameMat, grayscaleImage);
+                        boolean generalMotion = false;
+                        if (previousFrameMat != null && generalMotionDetection == true) {
+                            generalMotion = motionDetect(previousFrameMat, grayscaleImage);
                         }
 
                         // update the overlay to display detected features
-                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight(), motion);
+                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight(), generalMotion);
 
                         // set this frame as the previous frame
                         previousFrameMat = grayscaleImage;
@@ -735,6 +738,11 @@ public class MainActivity extends AppCompatActivity {
 
             if (eyeDetection) {
                 facesArray[i].eyesOpen = eyeDetect(faceImage);
+            }
+
+            if (facialMotionDetection) {
+                Mat prevFaceImage = new Mat(previousFrameMat, facesArray[i].getRectOpenCV());
+                facesArray[i].noMotion = ! motionDetect(prevFaceImage, faceImage);
             }
         }
 
