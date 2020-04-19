@@ -54,13 +54,24 @@
         app:layout_constraintTop_toBottomOf="@+id/smileDetection" />
 
     <Switch
-        android:id="@+id/motionDetection"
+        android:id="@+id/generalMotionDetection"
         android:layout_width="350dp"
         android:layout_height="27dp"
         android:layout_marginTop="20dp"
-        android:text="Motion Detection"
+        android:text="General Motion Detection"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.145"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/eyeDetection" />
+
+    <Switch
+        android:id="@+id/facialMotionDetection"
+        android:layout_width="350dp"
+        android:layout_height="27dp"
+        android:layout_marginTop="20dp"
+        android:text="Facial Motion Detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.145"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/generalMotionDetection" />
 </androidx.constraintlayout.widget.ConstraintLayout>

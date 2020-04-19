@@ -1,7 +1,5 @@
 package com.example.perfectphotoapp;
 
-import android.graphics.Rect;
-
 import org.opencv.core.Mat;
 
 import java.util.ArrayList;
@@ -9,6 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Face {
+    private static final double FACE_MARGIN_MULTIPLIER = 0.25;
+
     // values boxing in the face
     protected int left;
     protected int top;
@@ -20,6 +20,7 @@ public class Face {
     public int age;
     public boolean smile;
     public boolean eyesOpen;
+    public boolean noMotion;
 
     public Face(int left, int top, int right, int bottom) {
         this.left = left;
@@ -29,20 +30,15 @@ public class Face {
         this.age = 0;
     }
 
-    //crop face
-    public void Crop(Mat aInputFrame, org.opencv.core.Rect rectFace ) //opencv Rect cannot be imported because android.graphics.Rect is already imported
-    {
-        //this.croppedimg = aInputFrame.submat(rectFace);
-        this.croppedimg = new Mat(aInputFrame,rectFace);
-
+    // make an android graphics rectangle describing the location of this face
+    public android.graphics.Rect getRect() {
+        return new android.graphics.Rect(this.left, this.top, this.right, this.bottom);
     }
 
-    // make a rectangle describing the location of this face
-    public Rect getRect() {
-        return new Rect(this.left, this.top, this.right, this.bottom);
+    // make an opencv rectangle describing the location of this faces
+    public org.opencv.core.Rect getRectOpenCV() {
+        return new org.opencv.core.Rect(left,top,right-left,bottom-top);
     }
-
-
 
     // FACE MATCHING
 

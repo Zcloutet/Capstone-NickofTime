@@ -67,7 +67,8 @@ import java.util.Arrays;
 import java.util.Date;
 
 import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
-import static com.example.perfectphotoapp.SettingsActivity.MOTIONSWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.FACIALMOTIONSWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.GENERALMOTIONSWITCH;
 import static com.example.perfectphotoapp.SettingsActivity.SHARED_PREFS;
 import static com.example.perfectphotoapp.SettingsActivity.SMILESWITCH;
 
@@ -100,13 +101,6 @@ public class MainActivity extends AppCompatActivity {
     private Handler mBackgroundHandler;
     private Handler openCVHandler;
     private TextureView textureView;
-    private CascadeClassifier faceCascadeClassifier;
-    private CascadeClassifier smileCascadeClassifier;
-    private CascadeClassifier eyeCascadeClassifier;
-    private Mat grayscaleImage;
-    private int absoluteFaceSize;
-    private int eyesize;
-    private int smilesize;
     private boolean flash = false;
     private ImageReader opencvImageReader,captureImageReader;
     private boolean hasFlash ;
@@ -114,13 +108,18 @@ public class MainActivity extends AppCompatActivity {
     private Face[] faces = {};
     private Mat previousFrameMat;
 
-
     ImageButton btnFlash;
+
+    // cascade classifiers
+    private CascadeClassifier faceCascadeClassifier;
+    private CascadeClassifier smileCascadeClassifier;
+    private CascadeClassifier eyeCascadeClassifier;
 
     // preferences
     boolean smileDetection;
     boolean eyeDetection;
-    boolean motionDetection;
+    boolean generalMotionDetection;
+    boolean facialMotionDetection;
 
     private ImageView widthCapturer;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -288,8 +287,9 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         eyeDetection = sharedPreferences.getBoolean(EYESWITCH, true);
         smileDetection = sharedPreferences.getBoolean(SMILESWITCH, true);
-        motionDetection = sharedPreferences.getBoolean(MOTIONSWITCH, true);
-        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, motionDetection);
+        generalMotionDetection = sharedPreferences.getBoolean(GENERALMOTIONSWITCH, true);
+        facialMotionDetection = sharedPreferences.getBoolean(FACIALMOTIONSWITCH, true);
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, generalMotionDetection, facialMotionDetection);
     }
 
 
@@ -663,39 +663,25 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     image = reader.acquireLatestImage();
                     if (image != null) {
-                        //new conversion
-                        byte[] nv21;
-                        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
-                        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
-                        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
-                        int ySize = yBuffer.remaining();
-                        int uSize = uBuffer.remaining();
-                        int vSize = vBuffer.remaining();
-                        nv21 = new byte[ySize + uSize + vSize];
-                        //U and V are swapped
-                        yBuffer.get(nv21, 0, ySize);
-                        vBuffer.get(nv21, ySize, vSize);
-                        uBuffer.get(nv21, ySize + vSize, uSize);
+                        // convert image to grayscale mat
+                        Mat grayscaleImage = convertFrame(image);
 
-                        Mat mRGB = getYUV2Mat(image,nv21);
-                        //end conversion
-                        //Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                        grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                        // The faces will be a 20% of the height of the screen
-                        absoluteFaceSize = (int) (image.getHeight() * 0.10);
-                        eyesize = (int)(image.getHeight() * 0.01);
-                        //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                        Face[] newFaces = Cascadeframe(mRGB);
+                        // go through detection of new faces
+                        Face[] newFaces = Cascadeframe(grayscaleImage);
+
+                        // compare to old faces to keep old faces that may have not been detected
                         faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
 
-                        boolean motion = false;
-
-                        if (previousFrameMat != null && motionDetection == true) {
-                            motion = motionDetect(previousFrameMat, grayscaleImage);
+                        // detect motion in the whole image
+                        boolean generalMotion = false;
+                        if (previousFrameMat != null && generalMotionDetection == true) {
+                            generalMotion = motionDetect(previousFrameMat, grayscaleImage);
                         }
 
-                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight(), motion);
+                        // update the overlay to display detected features
+                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight(), generalMotion);
 
+                        // set this frame as the previous frame
                         previousFrameMat = grayscaleImage;
                     }
                 } catch (Exception e) {
@@ -739,83 +725,111 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public Face[] Cascadeframe(Mat aInputFrame) {
-        // Create a grayscale image
-        Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGB2GRAY);
-        MatOfRect faces = new MatOfRect();
+    public Face[] Cascadeframe(Mat frame) {
+        Face[] facesArray = faceDetect(frame);
 
-        // Use the classifier to detect faces
+        for (int i = 0; i < facesArray.length; i++) {
+            // get a cropped mat of just the face
+            Mat faceImage = new Mat(frame,facesArray[i].getRectOpenCV());
 
-        if (faceCascadeClassifier != null) {
-            faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 5, 2,
-                    new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
-        }
-        
-        // process faces
-        Rect[] rectFacesArray = faces.toArray();
-        Face[] facesArray = new Face[rectFacesArray.length];
-        for (int i = 0; i <rectFacesArray.length; i++) {
-            Rect rectFace = rectFacesArray[i];
-            facesArray[i] = new Face((int) (rectFace.x-rectFace.width*FACE_MARGIN_MULTIPLIER), (int) (rectFace.y-rectFace.height*FACE_MARGIN_MULTIPLIER), (int) (rectFace.x+rectFace.width*(1+FACE_MARGIN_MULTIPLIER)), (int) (rectFace.y+rectFace.height*(1+FACE_MARGIN_MULTIPLIER)));
-
-            //crops face by making a submat which is stored in face instance
-            facesArray[i].Crop(aInputFrame,rectFace);
-            //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
-            //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
-            org.opencv.core.Size s =facesArray[i].croppedimg.size();
-            double rows = s.height;
-            //Log.i(TAG, "height face" +rows);
-            eyesize = (int)(rows * 0.01);
-            //smilesize = (int)(rows * .1);
-            //int maxsizesmile = (int)(rows*.3);
-            //int maxsizeeye = (int)(rows*.15);
             if (smileDetection) {
-                // smile detection
-                MatOfRect smile = new MatOfRect();
-
-                if (smileCascadeClassifier != null) {
-                    //smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.2, 20,2,
-                            //new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size());
-                    smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
-                }
-
-                if (smile.toArray().length == 0) {
-                    facesArray[i].smile = false;
-                } else {
-                    facesArray[i].smile = true;
-                }
+                facesArray[i].smile = smileDetect(faceImage);
             }
 
             if (eyeDetection) {
-                // eye detection
-                MatOfRect eyes = new MatOfRect();
+                facesArray[i].eyesOpen = eyeDetect(faceImage);
+            }
 
-                if (eyeCascadeClassifier != null) {
-                    eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.1, 8,2,
-                            new org.opencv.core.Size(eyesize,eyesize));
-                    //eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.1,8);
-                }
-
-                if (eyes.toArray().length >= 2) {
-                    facesArray[i].eyesOpen = true;
-                } else {
-                    facesArray[i].eyesOpen = false;
-                }
-                //Log.w("num eyes", String.format("%d",eyes.toArray().length));
+            if (facialMotionDetection) {
+                Mat prevFaceImage = new Mat(previousFrameMat, facesArray[i].getRectOpenCV());
+                facesArray[i].noMotion = ! motionDetect(prevFaceImage, faceImage);
             }
         }
+
         return facesArray;
     }
 
+    // face detection
+    public Face[] faceDetect(Mat inputFrame) {
+        MatOfRect faces = new MatOfRect();
+
+        // set face size based on image size - 20% of screen
+        int faceSize = (int) (inputFrame.height() * 0.10);
+
+        // detect faces
+        if (faceCascadeClassifier != null) {
+            faceCascadeClassifier.detectMultiScale(inputFrame, faces, 1.1, 5, 2,
+                    new org.opencv.core.Size(faceSize, faceSize), new org.opencv.core.Size());
+        }
+
+        // process faces
+        Rect[] rectFacesArray = faces.toArray();
+        Face[] facesArray = new Face[rectFacesArray.length];
+
+        for (int i = 0; i <rectFacesArray.length; i++) {
+            Rect rectFace = rectFacesArray[i];
+            facesArray[i] = new Face((int) (rectFace.x - rectFace.width * FACE_MARGIN_MULTIPLIER), (int) (rectFace.y - rectFace.height * FACE_MARGIN_MULTIPLIER), (int) (rectFace.x + rectFace.width * (1 + FACE_MARGIN_MULTIPLIER)), (int) (rectFace.y + rectFace.height * (1 + FACE_MARGIN_MULTIPLIER)));
+        }
+
+        // return faces
+        return facesArray;
+    }
+
+    // smile detection
+    public boolean smileDetect(Mat faceImage) {
+        MatOfRect smile = new MatOfRect();
+
+        // determine size of smiles
+        //double rows = faceImage.size().height;
+        //int smilesize = (int)(rows * .1);
+        //int maxsizesmile = (int)(rows*.3);
+
+        // detect smiles
+        if (smileCascadeClassifier != null) {
+            //smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.2, 20,2,
+            //new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size());
+            smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.6, 20);
+        }
+
+        // return true if detected, otherwise false
+        return (smile.toArray().length != 0);
+    }
+
+    // eye detection
+    public boolean eyeDetect(Mat faceImage) {
+        MatOfRect eyes = new MatOfRect();
+
+        // determine size of eyes
+        double rows = faceImage.size().height;
+        int eyesize = (int)(rows * 0.01);
+        //int maxsizeeye = (int)(rows*.15);
+
+        // detect eyes
+        if (eyeCascadeClassifier != null) {
+            eyeCascadeClassifier.detectMultiScale(faceImage, eyes, 1.1, 8,2,
+                    new org.opencv.core.Size(eyesize,eyesize));
+            //eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.1,8);
+        }
+
+        // return true if detected, otherwise false
+        return (eyes.toArray().length >= 2);
+        //Log.w("num eyes", String.format("%d",eyes.toArray().length));
+    }
+
+    // detect motion
     public boolean motionDetect(Mat prevFrame, Mat currentFrame) {
+        // calculate difference between frames
         Mat diffFrame = new Mat();
         Core.absdiff(prevFrame, currentFrame, diffFrame);
 
+        // if difference is below 20, assign a value of 0; otherwise, assign a value of 1
         double threshold = 20;
         Imgproc.threshold(diffFrame, diffFrame, threshold, 1, Imgproc.THRESH_BINARY);
 
+        // take the mean of the pixels
         Scalar mean = Core.mean(diffFrame);
 
+        // if there was enough change, return true, otherwise false
         return (mean.val[0] > 0.05);
     }
 
@@ -835,8 +849,32 @@ public class MainActivity extends AppCompatActivity {
         // Copy the data into new matrix
         croppedRef.copyTo(cropped);
     }
-
      */
+
+    public Mat convertFrame(Image image) {
+        //new conversion
+        byte[] nv21;
+        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+        int ySize = yBuffer.remaining();
+        int uSize = uBuffer.remaining();
+        int vSize = vBuffer.remaining();
+        nv21 = new byte[ySize + uSize + vSize];
+        //U and V are swapped
+        yBuffer.get(nv21, 0, ySize);
+        vBuffer.get(nv21, ySize, vSize);
+        uBuffer.get(nv21, ySize + vSize, uSize);
+
+        Mat mRGB = getYUV2Mat(image,nv21);
+        //end conversion
+
+        Mat grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+        Imgproc.cvtColor(mRGB, grayscaleImage, Imgproc.COLOR_RGB2GRAY);
+
+        return grayscaleImage;
+    }
+
     public Mat getYUV2Mat(Image image,byte[] data) {
         Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CvType.CV_8UC1);
         mYuv.put(0, 0, data);
