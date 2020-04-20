@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if(!hasFlash){
-                    Toast.makeText(MainActivity.this, "Flash is not available.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_unavailable, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 flash = !flash;
@@ -169,10 +169,10 @@ public class MainActivity extends AppCompatActivity {
                 if(flash){
 
                     btnFlash.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
-                    Toast.makeText(MainActivity.this, "Flash has been turned on.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_turned_on, Toast.LENGTH_SHORT).show();
                 }else{
                     btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
-                    Toast.makeText(MainActivity.this, "Flash has been turned off.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_turned_off, Toast.LENGTH_SHORT).show();
                 }
 
 
@@ -339,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
         catch (CameraAccessException e) {
             // if there was a problem accessing the camera, let the user know
             e.printStackTrace();
-            Toast.makeText(getApplicationContext(),"Error opening camera.",Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),R.string.camera_open_error,Toast.LENGTH_SHORT).show();
         }
         Log.i(TAG, "Camera opened");
     }
@@ -412,7 +412,7 @@ public class MainActivity extends AppCompatActivity {
             captureImage();
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(this, "Error :"+ e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.error + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
 
         // play shutter sound
@@ -517,13 +517,13 @@ public class MainActivity extends AppCompatActivity {
             if(image != null){
                 try {
                     saveToInternalStorage(image);
-                    Toast.makeText(MainActivity.this, "Image has been saved.", Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(MainActivity.this, "Image has been saved.", Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Failed to save image", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.failed_to_save_image, Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
                 }
             }else{
-                Toast.makeText(MainActivity.this, "Unknown error has occurred", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, R.string.unknown_error_occurred, Toast.LENGTH_SHORT).show();
             }
             image.close();
 //            imageReader.close();
@@ -562,10 +562,10 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if(requestCode == CAMERA_PERMISSION_CODE){
             if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.permission_granted, Toast.LENGTH_SHORT).show();
             }
             else{
-                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.permission_denied, Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -601,7 +601,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 @Override
                 public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.configuration_change, Toast.LENGTH_SHORT).show();
                 }
             }, mBackgroundHandler);
         } catch (CameraAccessException e) {

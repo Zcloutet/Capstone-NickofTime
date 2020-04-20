@@ -2,4 +2,37 @@
     <string name="app_name">Perfect Photo App</string>
     <string name="title_activity_gallery">Perfect Photos</string>
     <string name="title_activity_gallery_list">List of photos</string>
+
+    <!-- main activity toasts -->
+    <string name="flash_unavailable">Flash is not available.</string>
+    <string name="flash_turned_on">Flash has been turned on.</string>
+    <string name="flash_turned_off">Flash has been turned off.</string>
+    <string name="camera_open_error">Error opening camera.</string>
+    <string name="error">Error: </string>
+    <string name="failed_to_save_image">Failed to save the photo.</string>
+    <string name="unknown_error_occurred">An unknown error has occurred.</string>
+    <string name="permission_granted">Permission granted.</string>
+    <string name="permission_denied">Permission denied.</string>
+    <string name="configuration_change">Configuration change.</string>
+
+    <!-- settings page strings -->
+    <string name="camera_settings">Camera Settings</string>
+    <string name="eye_detection">Eye Detection</string>
+    <string name="smile_detection">Smile Detection</string>
+    <string name="general_motion_detection">General Motion Detection</string>
+    <string name="facial_motion_detection">Facial Motion Detection</string>
+
+    <!-- gallery strings -->
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="share">Share</string>
+    <string name="delete">Delete</string>
+
+    <!-- gallery toasts -->
+    <string name="failed_to_delete">Failed to delete this photo.</string>
+    <string name="no_previous_photo">No previous photo.</string>
+    <string name="no_photos">No photos to show.</string>
+
+    <!-- camera overlay view strings -->
+    <string name="motion_detected">Motion Detected</string>
 </resources>

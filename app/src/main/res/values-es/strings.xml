@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Perfect Photo App</string>
+    <string name="camera_open_error">Error al abrir la cámara.</string>
+    <string name="camera_settings">Configuración de la cámara</string>
+    <string name="configuration_change">Cambio de configuración.</string>
+    <string name="delete">Eliminar</string>
+    <string name="error">Error:</string>
+    <string name="eye_detection">Detección de ojos</string>
+    <string name="facial_motion_detection">Detección de movimiento facial</string>
+    <string name="failed_to_delete">No se pudo eliminar esta foto.</string>
+    <string name="failed_to_save_image">No se pudo guardar la foto.</string>
+    <string name="flash_turned_off">Se ha desactivado flash.</string>
+    <string name="flash_turned_on">Se ha activado flash.</string>
+    <string name="flash_unavailable">Flash no está disponible.</string>
+    <string name="general_motion_detection">Detección de movimiento general</string>
+    <string name="motion_detected">Movimiento detectado</string>
+    <string name="next">Próxima</string>
+    <string name="no_photos">No hay fotos para mostrarle.</string>
+    <string name="no_previous_photo">No hay una foto anterior.</string>
+    <string name="permission_denied">Permiso negado.</string>
+    <string name="permission_granted">Permiso dado.</string>
+    <string name="previous">Anterior</string>
+    <string name="share">Compartir</string>
+    <string name="smile_detection">Detección de sonrisas</string>
+    <string name="title_activity_gallery">Fotos perfectas</string>
+    <string name="title_activity_gallery_list">Lista de fotos</string>
+    <string name="unknown_error_occurred">Un error desconocido ha ocurrido.</string>
+</resources>
