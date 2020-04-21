@@ -13,8 +13,14 @@ import com.google.android.material.snackbar.Snackbar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.transition.Slide;
+import android.transition.Transition;
+import android.transition.TransitionManager;
+import android.transition.TransitionValues;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -28,6 +34,12 @@ public class GalleryActivity extends AppCompatActivity {
     File currentImage;
     int currentIndex = 0;
     int totalImages = 0;
+    ViewGroup transition;
+    final int duration = 1500;
+    Transition slideLeft = new Slide(Gravity.LEFT);
+    Transition slideRight= new Slide(Gravity.RIGHT);
+
+
 
     private void initialize(){
 
@@ -48,7 +60,7 @@ public class GalleryActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         selectedImage= findViewById(R.id.imageView);
-
+        transition = findViewById(R.id.trans_container);
 
         Button btnNext,btnPrevious,btnDelete;
 
@@ -73,7 +85,7 @@ public class GalleryActivity extends AppCompatActivity {
                             // Left to Right swipe action
                             if (x2 > x1)
                             {
-                                doNext();
+                                doPrevious();
 
 //                                Toast.makeText(this, "Left to Right swipe [Next]", Toast.LENGTH_SHORT).show ();
                             }
@@ -81,7 +93,7 @@ public class GalleryActivity extends AppCompatActivity {
                             // Right to left swipe action
                             else
                             {
-                                doPrevious();
+                                doNext();
 //                                Toast.makeText(this, "Right to Left swipe [Previous]", Toast.LENGTH_SHORT).show ();
                             }
 
@@ -130,27 +142,44 @@ public class GalleryActivity extends AppCompatActivity {
         });
 
 
+        slideLeft.setDuration(duration);
+        slideRight.setDuration(duration);
     }
 
     private void doNext(){
+
+        selectedImage.setVisibility(View.INVISIBLE);
+
         if(totalImages == 0){
             currentIndex = 0;
             loadImage();
             return;
         }
         currentIndex = (currentIndex+1)% totalImages;
+        TransitionManager.endTransitions(transition);
+        TransitionManager.beginDelayedTransition(transition, new Slide(Gravity.RIGHT));
         loadImage();
+        selectedImage.setVisibility(View.VISIBLE);
     }
 
 
     private void doPrevious(){
+        selectedImage.setVisibility(View.INVISIBLE);
+
         currentIndex = (currentIndex-1);
         if(currentIndex<0){
             currentIndex = 0;
-            Toast.makeText(this, "Can't load previous image", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No image before this.", Toast.LENGTH_SHORT).show();
+            selectedImage.setVisibility(View.VISIBLE);
+
             return;
         }
+
+        TransitionManager.beginDelayedTransition(transition, new Slide(Gravity.LEFT));
+
         loadImage();
+        selectedImage.setVisibility(View.VISIBLE);
+
     }
 
     @Override
