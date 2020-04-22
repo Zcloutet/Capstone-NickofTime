@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "PerfectPhoto"; // log tag
     private static final int FRAME_PROCESS_NUMBER = 3;
     private static final int MAX_FACE_AGE = 3;
+    private static final int AUTOMATICPHOTOCOOLDOWNTIME = 30;
 
     CameraManager manager;
     HandlerThread mBackgroundThread;
@@ -105,8 +106,10 @@ public class MainActivity extends AppCompatActivity {
     private ImageReader opencvImageReader,captureImageReader;
     private boolean hasFlash ;
     private int frameCount = 0;
+    private int automaticPhotoCooldown = 30; // initialized to a large value to prevent it from immediately taking photos
     private Face[] faces = {};
     private Mat previousFrameMat;
+    private ValueAnimator flashAnimator;
 
     ImageButton btnFlash;
 
@@ -140,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
+        loadFlashAnimator();
 
         // textureView
         textureView = (TextureView) findViewById(R.id.texture);
@@ -157,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if(!hasFlash){
-                    Toast.makeText(MainActivity.this, "Flash is not available.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_unavailable, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 flash = !flash;
@@ -165,10 +169,10 @@ public class MainActivity extends AppCompatActivity {
                 if(flash){
 
                     btnFlash.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
-                    Toast.makeText(MainActivity.this, "Flash has been turned on.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_turned_on, Toast.LENGTH_SHORT).show();
                 }else{
                     btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
-                    Toast.makeText(MainActivity.this, "Flash has been turned off.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_turned_off, Toast.LENGTH_SHORT).show();
                 }
 
 
@@ -222,8 +226,6 @@ public class MainActivity extends AppCompatActivity {
 
 
         textureView.setOnTouchListener(onTouchListener);
-
-
     }
 
     @Override
@@ -337,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
         catch (CameraAccessException e) {
             // if there was a problem accessing the camera, let the user know
             e.printStackTrace();
-            Toast.makeText(getApplicationContext(),"Error opening camera.",Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),R.string.camera_open_error,Toast.LENGTH_SHORT).show();
         }
         Log.i(TAG, "Camera opened");
     }
@@ -406,6 +408,13 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void takePhoto() {
+        try {
+            captureImage();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, R.string.error + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+
         // play shutter sound
         Log.i(TAG, "playing shutter sound");
         MediaActionSound mediaActionSound = new MediaActionSound();
@@ -413,9 +422,15 @@ public class MainActivity extends AppCompatActivity {
 
         // flash screen
         Log.i(TAG, "flashing screen");
+        flashAnimator.cancel();
+        flashAnimator.start();
+    }
+
+    private void loadFlashAnimator() {
+        // create flash animator for screen flash
         final ImageView flash = findViewById(R.id.imageViewFlash);
         // create animator to make flash pleasant
-        ValueAnimator flashAnimator = ValueAnimator.ofInt(255,0);
+        flashAnimator = ValueAnimator.ofInt(255,0);
         flashAnimator.setInterpolator(new AccelerateInterpolator());
         flashAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
@@ -448,14 +463,6 @@ public class MainActivity extends AppCompatActivity {
         });
         // the duration can be tuned
         flashAnimator.setDuration(700);
-        // animate it
-        flashAnimator.start();
-        try {
-            captureImage();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Error :"+ e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
     }
 
     //capture image
@@ -510,13 +517,13 @@ public class MainActivity extends AppCompatActivity {
             if(image != null){
                 try {
                     saveToInternalStorage(image);
-                    Toast.makeText(MainActivity.this, "Image has been saved.", Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(MainActivity.this, "Image has been saved.", Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Failed to save image", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.failed_to_save_image, Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
                 }
             }else{
-                Toast.makeText(MainActivity.this, "Unknown error has occurred", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, R.string.unknown_error_occurred, Toast.LENGTH_SHORT).show();
             }
             image.close();
 //            imageReader.close();
@@ -555,10 +562,10 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if(requestCode == CAMERA_PERMISSION_CODE){
             if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.permission_granted, Toast.LENGTH_SHORT).show();
             }
             else{
-                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.permission_denied, Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -594,7 +601,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 @Override
                 public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.configuration_change, Toast.LENGTH_SHORT).show();
                 }
             }, mBackgroundHandler);
         } catch (CameraAccessException e) {
@@ -655,6 +662,7 @@ public class MainActivity extends AppCompatActivity {
     private final ImageReader.OnImageAvailableListener mOnOpenCVImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
+            if (automaticPhotoCooldown > 0) --automaticPhotoCooldown;
             if (++frameCount % FRAME_PROCESS_NUMBER != 0) {
                 reader.acquireLatestImage().close();
             }
@@ -683,6 +691,17 @@ public class MainActivity extends AppCompatActivity {
 
                         // set this frame as the previous frame
                         previousFrameMat = grayscaleImage;
+
+                        // take a photo if conditions are met
+                        if (automaticPhotoCooldown == 0 && checkPhotoConditions(faces, generalMotion)) {
+                            automaticPhotoCooldown = AUTOMATICPHOTOCOOLDOWNTIME;
+                            runOnUiThread(new Runnable() { // because takePhoto() affects the UI it has to be run on the UI thread
+                                @Override
+                                public void run() {
+                                    takePhoto();
+                                }
+                            });
+                        }
                     }
                 } catch (Exception e) {
                     Log.w(TAG, e.getMessage());
@@ -883,6 +902,19 @@ public class MainActivity extends AppCompatActivity {
         return mRGB;
     }
 
+    // conditions to be met to take a photo
+    public boolean checkPhotoConditions(Face[] faceArray, boolean generalMotionDetected) {
+        if (generalMotionDetected && generalMotionDetection) return false;
+        else {
+            for (Face face : faceArray) {
+                if (!face.smile && smileDetection) return false;
+                else if (!face.eyesOpen && eyeDetection) return false;
+                else if (!face.noMotion && facialMotionDetection) return false;
+            }
+            if ((smileDetection || eyeDetection || facialMotionDetection) && (faceArray.length == 0)) return false;
+        }
+        return true;
+    }
 
 
     //onTouchListener

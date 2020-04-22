@@ -136,12 +136,12 @@ public class GalleryActivity extends AppCompatActivity {
                     return;
                 }
                 if (currentImage.delete()){
-                    Toast.makeText(GalleryActivity.this, "Successfully Deleted", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(GalleryActivity.this, "Successfully Deleted", Toast.LENGTH_SHORT).show();
                     initialize();
                     currentIndex = 0;
                     loadImage();
                 }else{
-                    Toast.makeText(GalleryActivity.this, "Failed to delete", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(GalleryActivity.this, R.string.failed_to_delete, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -164,7 +164,7 @@ public class GalleryActivity extends AppCompatActivity {
         currentIndex = (currentIndex-1);
         if(currentIndex<0){
             currentIndex = 0;
-            Toast.makeText(this, "Can't load previous image", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.no_previous_photo, Toast.LENGTH_SHORT).show();
             return;
         }
         loadImage();
@@ -184,7 +184,7 @@ public class GalleryActivity extends AppCompatActivity {
             selectedImage.setImageBitmap(BitmapFactory.decodeFile(currentImage.getAbsolutePath()));
         }else{
             selectedImage.setImageResource(android.R.drawable.stat_notify_error);
-            Toast.makeText(this, "No images to show", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
         }
     }
 

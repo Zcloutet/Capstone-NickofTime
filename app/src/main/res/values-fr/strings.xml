@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Perfect Photo App</string>
+    <string name="camera_open_error">Erreur en ouvrant l\'appareil photo.</string>
+    <string name="camera_settings">Réglages de l\'appareil photo.</string>
+    <string name="configuration_change">Change de configuration.</string>
+    <string name="delete">Supprimer</string>
+    <string name="error">Erreur:</string>
+    <string name="eye_detection">Détection des yeux</string>
+    <string name="facial_motion_detection">"Détection de mouvement faciale "</string>
+    <string name="general_motion_detection">Détection de mouvement générale</string>
+    <string name="motion_detected">Mouvement détecté</string>
+    <string name="next">Prochaine</string>
+    <string name="previous">Précédente</string>
+    <string name="permission_granted">Permission donnée.</string>
+    <string name="permission_denied">Permission niée.</string>
+    <string name="no_previous_photo">Il n\'y a pas de photo précédente.</string>
+    <string name="no_photos">Il n\'y a pas de photos à afficher</string>
+    <string name="share">Partager</string>
+    <string name="smile_detection">Détection des sourires</string>
+    <string name="title_activity_gallery">Les photos parfaites</string>
+    <string name="title_activity_gallery_list">Liste de photos</string>
+    <string name="unknown_error_occurred">Un erreur inconnu a apparu.</string>
+    <string name="flash_turned_off">Le flash a été désactivé.</string>
+    <string name="flash_turned_on">Le flash a été activé.</string>
+    <string name="flash_unavailable">Le flash n\'est pas disponible.</string>
+    <string name="failed_to_save_image">Échec en sauvegardant la photo.</string>
+    <string name="failed_to_delete">Échec en supprimant cette photo.</string>
+</resources>
