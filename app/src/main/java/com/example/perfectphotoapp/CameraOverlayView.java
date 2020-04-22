@@ -140,7 +140,7 @@ public class CameraOverlayView extends View {
         if (generalMotionDetection && generalMotionDetected) {
             Rect bounds = new Rect();
             String motionDetectedString = getContext().getResources().getString(R.string.motion_detected);
-            redTextPaint.getTextBounds(motionDetectedString, 0, 14, bounds);
+            redTextPaint.getTextBounds(motionDetectedString, 0, motionDetectedString.length(), bounds);
             canvas.drawText(motionDetectedString, (w-bounds.width())/2, h*0.85f, redTextPaint);
         }
     }
