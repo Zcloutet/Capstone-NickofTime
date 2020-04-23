@@ -23,9 +23,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.util.Calendar;
+import java.util.Date;
 
 public class GalleryActivity extends AppCompatActivity {
 
@@ -45,7 +48,13 @@ public class GalleryActivity extends AppCompatActivity {
 
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
-        images = directory.listFiles();
+        File[] temp = directory.listFiles();
+        images = new File[temp.length];
+        int j=0;
+        for(int i=temp.length-1;i>=0;i--){
+            images[j]= temp[i];
+            j++;
+        }
 
         currentIndex = getIntent().getIntExtra("IMAGE_ID",0);
 
@@ -189,10 +198,26 @@ public class GalleryActivity extends AppCompatActivity {
 
         loadImage();
     }
+    TextView date;
 
     private void loadImage(){
         if(currentIndex < totalImages){
             currentImage = images[currentIndex];
+            String fileName = currentImage.getName();
+            date = findViewById(R.id.datetime);
+            Date timeStamp = new Date();
+            try{
+                fileName= fileName.split("_")[1];
+                fileName=fileName.split("\\.")[0];
+
+                long time = Long.parseLong(fileName);
+                timeStamp = new Date(time);
+
+            }catch(Exception e){
+                Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+            date.setText("Captured on: "+ timeStamp.toLocaleString());
+
             selectedImage.setImageBitmap(BitmapFactory.decodeFile(currentImage.getAbsolutePath()));
         }else{
             selectedImage.setImageResource(android.R.drawable.stat_notify_error);

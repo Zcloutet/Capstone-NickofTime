@@ -109,8 +109,10 @@ public class GalleryList extends AppCompatActivity {
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
         images = new ArrayList<File>();
-        for(File f:directory.listFiles()){
-            images.add(f);
+        File[] f=directory.listFiles();
+        for(int i=f.length-1;i>=0;i--){
+            images.add(f[i]);
+
         }
 //                directory.listFiles();
         toDelete = new ArrayList<Integer>();
@@ -130,7 +132,6 @@ public class GalleryList extends AppCompatActivity {
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        initialize();
 
 
         FloatingActionButton fab = findViewById(R.id.fab);
@@ -150,6 +151,12 @@ public class GalleryList extends AppCompatActivity {
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        initialize();
+
+    }
 
     class GridAdapter extends BaseAdapter{
         ArrayList<File> imgs;
