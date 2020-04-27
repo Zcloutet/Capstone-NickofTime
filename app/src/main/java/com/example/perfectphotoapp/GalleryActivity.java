@@ -2,6 +2,7 @@ package com.example.perfectphotoapp;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -43,6 +44,8 @@ public class GalleryActivity extends AppCompatActivity {
     Transition slideRight= new Slide(Gravity.RIGHT);
 
 
+    private Uri imageUri;
+    private Intent intent;
 
     private void initialize(){
 
@@ -71,7 +74,7 @@ public class GalleryActivity extends AppCompatActivity {
         selectedImage= findViewById(R.id.imageView);
         transition = findViewById(R.id.trans_container);
 
-        Button btnNext,btnPrevious,btnDelete;
+        Button btnNext,btnPrevious,btnDelete, shareButton;
 
 
         selectedImage.setOnTouchListener(new View.OnTouchListener() {
@@ -117,6 +120,20 @@ public class GalleryActivity extends AppCompatActivity {
         btnNext = findViewById(R.id.next);
         btnPrevious = findViewById(R.id.previous);
         btnDelete = findViewById(R.id.delete);
+        shareButton = findViewById(R.id.share);
+
+        shareButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(totalImages == 0 ||currentImage==null){
+                    return;
+                }
+                Intent myIntent = new Intent(Intent.ACTION_SEND);
+                myIntent.setType("*/*");
+                myIntent.putExtra(Intent.EXTRA_STREAM, currentImage);
+                startActivity(Intent.createChooser(myIntent, "Share Using"));
+            }
+        });
 
         btnNext.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -140,12 +157,12 @@ public class GalleryActivity extends AppCompatActivity {
                     return;
                 }
                 if (currentImage.delete()){
-                    Toast.makeText(GalleryActivity.this, "Successfully Deleted", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(GalleryActivity.this, "Successfully Deleted", Toast.LENGTH_SHORT).show();
                     initialize();
                     currentIndex = 0;
                     loadImage();
                 }else{
-                    Toast.makeText(GalleryActivity.this, "Failed to delete", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(GalleryActivity.this, R.string.failed_to_delete, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -178,9 +195,9 @@ public class GalleryActivity extends AppCompatActivity {
         currentIndex = (currentIndex-1);
         if(currentIndex<0){
             currentIndex = 0;
-            Toast.makeText(this, "No image before this.", Toast.LENGTH_SHORT).show();
             selectedImage.setVisibility(View.VISIBLE);
 
+            Toast.makeText(this, R.string.no_previous_photo, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -221,7 +238,7 @@ public class GalleryActivity extends AppCompatActivity {
             selectedImage.setImageBitmap(BitmapFactory.decodeFile(currentImage.getAbsolutePath()));
         }else{
             selectedImage.setImageResource(android.R.drawable.stat_notify_error);
-            Toast.makeText(this, "No images to show", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
         }
     }
 

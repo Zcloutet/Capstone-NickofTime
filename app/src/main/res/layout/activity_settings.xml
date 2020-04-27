@@ -4,7 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F8DFDEDA"
     tools:context=".SettingsActivity">
+
 
     <ImageButton
         android:id="@+id/go_back"
@@ -12,20 +15,64 @@
         android:layout_height="55dp"
         android:background="?selectableItemBackgroundBorderless"
         android:scaleType="fitXY"
+        android:src="@drawable/ic_keyboard_arrow_left_black_24dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.934"
-        app:srcCompat="@drawable/go_back" />
-
+        tools:layout_editor_absoluteY="95dp" />
 
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="SETTINGS PAGE"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginTop="52dp"
+        android:fontFamily="@font/abhaya_libre_medium"
+        android:text="@string/camera_settings"
+        android:textSize="32dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:textSize="32dp"/>
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Switch
+        android:id="@+id/smileDetection"
+        android:layout_width="350dp"
+        android:layout_height="27dp"
+        android:layout_marginTop="76dp"
+        android:text="@string/smile_detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.152"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
+
+    <Switch
+        android:id="@+id/eyeDetection"
+        android:layout_width="350dp"
+        android:layout_height="27dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/eye_detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.145"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/smileDetection" />
+
+    <Switch
+        android:id="@+id/facialMotionDetection"
+        android:layout_width="350dp"
+        android:layout_height="27dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/facial_motion_detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.145"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/eyeDetection" />
+
+    <Switch
+        android:id="@+id/generalMotionDetection"
+        android:layout_width="350dp"
+        android:layout_height="27dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/general_motion_detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.145"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/facialMotionDetection" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

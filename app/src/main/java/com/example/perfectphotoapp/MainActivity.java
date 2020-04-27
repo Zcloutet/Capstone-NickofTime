@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
@@ -49,10 +50,12 @@ import androidx.core.content.ContextCompat;
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
@@ -62,6 +65,12 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
+
+import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.FACIALMOTIONSWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.GENERALMOTIONSWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.SHARED_PREFS;
+import static com.example.perfectphotoapp.SettingsActivity.SMILESWITCH;
 
 //import org.opencv.android.
 //import org.opencv.core.Mat;
@@ -77,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "PerfectPhoto"; // log tag
     private static final int FRAME_PROCESS_NUMBER = 3;
     private static final int MAX_FACE_AGE = 3;
+    private static final int AUTOMATICPHOTOCOOLDOWNTIME = 30;
 
     CameraManager manager;
     HandlerThread mBackgroundThread;
@@ -92,18 +102,27 @@ public class MainActivity extends AppCompatActivity {
     private Handler mBackgroundHandler;
     private Handler openCVHandler;
     private TextureView textureView;
-    private CascadeClassifier faceCascadeClassifier;
-    private CascadeClassifier smileCascadeClassifier;
-    private CascadeClassifier eyeCascadeClassifier;
-    private Mat grayscaleImage;
-    private int absoluteFaceSize;
     private boolean flash = false;
     private ImageReader opencvImageReader,captureImageReader;
     private boolean hasFlash ;
     private int frameCount = 0;
+    private int automaticPhotoCooldown = 30; // initialized to a large value to prevent it from immediately taking photos
     private Face[] faces = {};
+    private Mat previousFrameMat;
+    private ValueAnimator flashAnimator;
 
     ImageButton btnFlash;
+
+    // cascade classifiers
+    private CascadeClassifier faceCascadeClassifier;
+    private CascadeClassifier smileCascadeClassifier;
+    private CascadeClassifier eyeCascadeClassifier;
+
+    // preferences
+    boolean smileDetection;
+    boolean eyeDetection;
+    boolean generalMotionDetection;
+    boolean facialMotionDetection;
 
     private ImageView widthCapturer;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -124,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
+        loadFlashAnimator();
 
         // textureView
         textureView = (TextureView) findViewById(R.id.texture);
@@ -141,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 if(!hasFlash){
-                    Toast.makeText(MainActivity.this, "Flash is not available.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_unavailable, Toast.LENGTH_SHORT).show();
                     return;
                 }
                 flash = !flash;
@@ -149,10 +169,10 @@ public class MainActivity extends AppCompatActivity {
                 if(flash){
 
                     btnFlash.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
-                    Toast.makeText(MainActivity.this, "Flash has been turned on.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_turned_on, Toast.LENGTH_SHORT).show();
                 }else{
                     btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
-                    Toast.makeText(MainActivity.this, "Flash has been turned off.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.flash_turned_off, Toast.LENGTH_SHORT).show();
                 }
 
 
@@ -206,15 +226,13 @@ public class MainActivity extends AppCompatActivity {
 
 
         textureView.setOnTouchListener(onTouchListener);
-
-
     }
-
-
 
     @Override
     protected void onResume() {
         super.onResume();
+
+        loadPreferences();
 
         if (textureView.isAvailable()) {
             openCamera(cameraIndex);
@@ -267,8 +285,18 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void loadPreferences() {
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        eyeDetection = sharedPreferences.getBoolean(EYESWITCH, true);
+        smileDetection = sharedPreferences.getBoolean(SMILESWITCH, true);
+        generalMotionDetection = sharedPreferences.getBoolean(GENERALMOTIONSWITCH, true);
+        facialMotionDetection = sharedPreferences.getBoolean(FACIALMOTIONSWITCH, true);
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, generalMotionDetection, facialMotionDetection);
+    }
+
 
     // CAMERA HANDLING
+
     CameraCharacteristics cameraInfo;
 //open camera and create capturesession
     private void openCamera(int cameraIndex) {
@@ -311,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
         catch (CameraAccessException e) {
             // if there was a problem accessing the camera, let the user know
             e.printStackTrace();
-            Toast.makeText(getApplicationContext(),"Error opening camera.",Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),R.string.camera_open_error,Toast.LENGTH_SHORT).show();
         }
         Log.i(TAG, "Camera opened");
     }
@@ -380,6 +408,13 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private void takePhoto() {
+        try {
+            captureImage();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, R.string.error + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+
         // play shutter sound
         Log.i(TAG, "playing shutter sound");
         MediaActionSound mediaActionSound = new MediaActionSound();
@@ -387,9 +422,15 @@ public class MainActivity extends AppCompatActivity {
 
         // flash screen
         Log.i(TAG, "flashing screen");
+        flashAnimator.cancel();
+        flashAnimator.start();
+    }
+
+    private void loadFlashAnimator() {
+        // create flash animator for screen flash
         final ImageView flash = findViewById(R.id.imageViewFlash);
         // create animator to make flash pleasant
-        ValueAnimator flashAnimator = ValueAnimator.ofInt(255,0);
+        flashAnimator = ValueAnimator.ofInt(255,0);
         flashAnimator.setInterpolator(new AccelerateInterpolator());
         flashAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
@@ -422,14 +463,6 @@ public class MainActivity extends AppCompatActivity {
         });
         // the duration can be tuned
         flashAnimator.setDuration(700);
-        // animate it
-        flashAnimator.start();
-        try {
-            captureImage();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Error :"+ e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
     }
 
     //capture image
@@ -484,13 +517,13 @@ public class MainActivity extends AppCompatActivity {
             if(image != null){
                 try {
                     saveToInternalStorage(image);
-                    Toast.makeText(MainActivity.this, "Image has been saved.", Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(MainActivity.this, "Image has been saved.", Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Failed to save image", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.failed_to_save_image, Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
                 }
             }else{
-                Toast.makeText(MainActivity.this, "Unknown error has occurred", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, R.string.unknown_error_occurred, Toast.LENGTH_SHORT).show();
             }
             image.close();
 //            imageReader.close();
@@ -529,10 +562,10 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if(requestCode == CAMERA_PERMISSION_CODE){
             if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.permission_granted, Toast.LENGTH_SHORT).show();
             }
             else{
-                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, R.string.permission_denied, Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -568,7 +601,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 @Override
                 public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                    Toast.makeText(MainActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.configuration_change, Toast.LENGTH_SHORT).show();
                 }
             }, mBackgroundHandler);
         } catch (CameraAccessException e) {
@@ -629,6 +662,7 @@ public class MainActivity extends AppCompatActivity {
     private final ImageReader.OnImageAvailableListener mOnOpenCVImageAvailableListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
+            if (automaticPhotoCooldown > 0) --automaticPhotoCooldown;
             if (++frameCount % FRAME_PROCESS_NUMBER != 0) {
                 reader.acquireLatestImage().close();
             }
@@ -637,31 +671,37 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     image = reader.acquireLatestImage();
                     if (image != null) {
-                        //new conversion
-                        byte[] nv21;
-                        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
-                        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
-                        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
-                        int ySize = yBuffer.remaining();
-                        int uSize = uBuffer.remaining();
-                        int vSize = vBuffer.remaining();
-                        nv21 = new byte[ySize + uSize + vSize];
-                        //U and V are swapped
-                        yBuffer.get(nv21, 0, ySize);
-                        vBuffer.get(nv21, ySize, vSize);
-                        uBuffer.get(nv21, ySize + vSize, uSize);
+                        // convert image to grayscale mat
+                        Mat grayscaleImage = convertFrame(image);
 
-                        Mat mRGB = getYUV2Mat(image,nv21);
-                        //end conversion
-                        Mat bgrMat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                        grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-                        // The faces will be a 20% of the height of the screen
-                        absoluteFaceSize = (int) (image.getHeight() * 0.20);
+                        // go through detection of new faces
+                        Face[] newFaces = Cascadeframe(grayscaleImage);
 
-                        //Imgproc.cvtColor(mRGB, bgrMat, Imgproc.COLOR_YUV2BGR_I420);
-                        Face[] newFaces = Cascadeframe(mRGB);
+                        // compare to old faces to keep old faces that may have not been detected
                         faces = Face.compareFaces(faces, newFaces, MAX_FACE_AGE);
-                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight());
+
+                        // detect motion in the whole image
+                        boolean generalMotion = false;
+                        if (previousFrameMat != null && generalMotionDetection == true) {
+                            generalMotion = motionDetect(previousFrameMat, grayscaleImage);
+                        }
+
+                        // update the overlay to display detected features
+                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight(), generalMotion);
+
+                        // set this frame as the previous frame
+                        previousFrameMat = grayscaleImage;
+
+                        // take a photo if conditions are met
+                        if (automaticPhotoCooldown == 0 && checkPhotoConditions(faces, generalMotion)) {
+                            automaticPhotoCooldown = AUTOMATICPHOTOCOOLDOWNTIME;
+                            runOnUiThread(new Runnable() { // because takePhoto() affects the UI it has to be run on the UI thread
+                                @Override
+                                public void run() {
+                                    takePhoto();
+                                }
+                            });
+                        }
                     }
                 } catch (Exception e) {
                     Log.w(TAG, e.getMessage());
@@ -704,60 +744,112 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public Face[] Cascadeframe(Mat aInputFrame) {
-        // Create a grayscale image
-        Imgproc.cvtColor(aInputFrame, grayscaleImage, Imgproc.COLOR_RGBA2RGB);
+    public Face[] Cascadeframe(Mat frame) {
+        Face[] facesArray = faceDetect(frame);
+
+        for (int i = 0; i < facesArray.length; i++) {
+            // get a cropped mat of just the face
+            Mat faceImage = new Mat(frame,facesArray[i].getRectOpenCV());
+
+            if (smileDetection) {
+                facesArray[i].smile = smileDetect(faceImage);
+            }
+
+            if (eyeDetection) {
+                facesArray[i].eyesOpen = eyeDetect(faceImage);
+            }
+
+            if (facialMotionDetection) {
+                Mat prevFaceImage = new Mat(previousFrameMat, facesArray[i].getRectOpenCV());
+                facesArray[i].noMotion = ! motionDetect(prevFaceImage, faceImage);
+            }
+        }
+
+        return facesArray;
+    }
+
+    // face detection
+    public Face[] faceDetect(Mat inputFrame) {
         MatOfRect faces = new MatOfRect();
 
-        // Use the classifier to detect faces
+        // set face size based on image size - 20% of screen
+        int faceSize = (int) (inputFrame.height() * 0.10);
 
+        // detect faces
         if (faceCascadeClassifier != null) {
-            faceCascadeClassifier.detectMultiScale(grayscaleImage, faces, 1.1, 3, 2,
-                    new org.opencv.core.Size(absoluteFaceSize, absoluteFaceSize), new org.opencv.core.Size());
+            faceCascadeClassifier.detectMultiScale(inputFrame, faces, 1.1, 5, 2,
+                    new org.opencv.core.Size(faceSize, faceSize), new org.opencv.core.Size());
         }
-        // If any faces found, draw a rectangle around it
+
+        // process faces
         Rect[] rectFacesArray = faces.toArray();
         Face[] facesArray = new Face[rectFacesArray.length];
+
         for (int i = 0; i <rectFacesArray.length; i++) {
             Rect rectFace = rectFacesArray[i];
-            facesArray[i] = new Face((int) (rectFace.x-rectFace.width*FACE_MARGIN_MULTIPLIER), (int) (rectFace.y-rectFace.height*FACE_MARGIN_MULTIPLIER), (int) (rectFace.x+rectFace.width*(1+FACE_MARGIN_MULTIPLIER)), (int) (rectFace.y+rectFace.height*(1+FACE_MARGIN_MULTIPLIER)));
-
-            //crops face by making a submat which is stored in face instance
-            facesArray[i].Crop(aInputFrame,rectFace);
-            //Log.i(TAG, "cropped" +(facesArray[i].croppedimg));
-            //Imgcodecs.imwrite("C:/Cropped/"+String.valueOf(System.currentTimeMillis()) + ".bmp", facesArray[i].croppedimg);
-
-
-            // smile detection
-            MatOfRect smile = new MatOfRect();
-
-            if (smileCascadeClassifier != null) {
-                smileCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, smile, 1.6, 20);
-            }
-
-            if (smile.toArray().length == 0) {
-                facesArray[i].smile = false;
-            }
-            else {
-                facesArray[i].smile = true;
-            }
-
-            // eye detection
-            MatOfRect eyes = new MatOfRect();
-
-            if(eyeCascadeClassifier != null) {
-                eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.2, 6);
-            }
-
-            if (eyes.toArray().length >= 1) {
-                facesArray[i].eyesOpen = true;
-            }
-            else {
-                facesArray[i].eyesOpen = false;
-            }
-            //Log.w("num eyes", String.format("%d",eyes.toArray().length));
+            facesArray[i] = new Face((int) (rectFace.x - rectFace.width * FACE_MARGIN_MULTIPLIER), (int) (rectFace.y - rectFace.height * FACE_MARGIN_MULTIPLIER), (int) (rectFace.x + rectFace.width * (1 + FACE_MARGIN_MULTIPLIER)), (int) (rectFace.y + rectFace.height * (1 + FACE_MARGIN_MULTIPLIER)));
         }
+
+        // return faces
         return facesArray;
+    }
+
+    // smile detection
+    public boolean smileDetect(Mat faceImage) {
+        MatOfRect smile = new MatOfRect();
+
+        // determine size of smiles
+        //double rows = faceImage.size().height;
+        //int smilesize = (int)(rows * .1);
+        //int maxsizesmile = (int)(rows*.3);
+
+        // detect smiles
+        if (smileCascadeClassifier != null) {
+            //smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.2, 20,2,
+            //new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size());
+            smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.6, 20);
+        }
+
+        // return true if detected, otherwise false
+        return (smile.toArray().length != 0);
+    }
+
+    // eye detection
+    public boolean eyeDetect(Mat faceImage) {
+        MatOfRect eyes = new MatOfRect();
+
+        // determine size of eyes
+        double rows = faceImage.size().height;
+        int eyesize = (int)(rows * 0.01);
+        //int maxsizeeye = (int)(rows*.15);
+
+        // detect eyes
+        if (eyeCascadeClassifier != null) {
+            eyeCascadeClassifier.detectMultiScale(faceImage, eyes, 1.1, 8,2,
+                    new org.opencv.core.Size(eyesize,eyesize));
+            //eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.1,8);
+        }
+
+        // return true if detected, otherwise false
+        return (eyes.toArray().length >= 2);
+        //Log.w("num eyes", String.format("%d",eyes.toArray().length));
+    }
+
+    // detect motion
+    public boolean motionDetect(Mat prevFrame, Mat currentFrame) {
+        // calculate difference between frames
+        Mat diffFrame = new Mat();
+        Core.absdiff(prevFrame, currentFrame, diffFrame);
+
+        // if difference is below 20, assign a value of 0; otherwise, assign a value of 1
+        double threshold = 20;
+        Imgproc.threshold(diffFrame, diffFrame, threshold, 1, Imgproc.THRESH_BINARY);
+
+        // take the mean of the pixels
+        Scalar mean = Core.mean(diffFrame);
+
+        // if there was enough change, return true, otherwise false
+        return (mean.val[0] > 0.05);
     }
 
     /*
@@ -776,8 +868,32 @@ public class MainActivity extends AppCompatActivity {
         // Copy the data into new matrix
         croppedRef.copyTo(cropped);
     }
-
      */
+
+    public Mat convertFrame(Image image) {
+        //new conversion
+        byte[] nv21;
+        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
+        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
+        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
+        int ySize = yBuffer.remaining();
+        int uSize = uBuffer.remaining();
+        int vSize = vBuffer.remaining();
+        nv21 = new byte[ySize + uSize + vSize];
+        //U and V are swapped
+        yBuffer.get(nv21, 0, ySize);
+        vBuffer.get(nv21, ySize, vSize);
+        uBuffer.get(nv21, ySize + vSize, uSize);
+
+        Mat mRGB = getYUV2Mat(image,nv21);
+        //end conversion
+
+        Mat grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+        Imgproc.cvtColor(mRGB, grayscaleImage, Imgproc.COLOR_RGB2GRAY);
+
+        return grayscaleImage;
+    }
+
     public Mat getYUV2Mat(Image image,byte[] data) {
         Mat mYuv = new Mat(image.getHeight() + image.getHeight() / 2, image.getWidth(), CvType.CV_8UC1);
         mYuv.put(0, 0, data);
@@ -786,6 +902,19 @@ public class MainActivity extends AppCompatActivity {
         return mRGB;
     }
 
+    // conditions to be met to take a photo
+    public boolean checkPhotoConditions(Face[] faceArray, boolean generalMotionDetected) {
+        if (generalMotionDetected && generalMotionDetection) return false;
+        else {
+            for (Face face : faceArray) {
+                if (!face.smile && smileDetection) return false;
+                else if (!face.eyesOpen && eyeDetection) return false;
+                else if (!face.noMotion && facialMotionDetection) return false;
+            }
+            if ((smileDetection || eyeDetection || facialMotionDetection) && (faceArray.length == 0)) return false;
+        }
+        return true;
+    }
 
 
     //onTouchListener

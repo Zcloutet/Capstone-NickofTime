@@ -4,9 +4,31 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:keepScreenOn="true"
     android:background="#000000"
+    android:keepScreenOn="true"
     tools:context=".MainActivity">
+
+
+    <!--    <com.google.android.material.appbar.AppBarLayout-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:theme="@style/AppTheme.AppBarOverlay">-->
+
+    <!--        <androidx.appcompat.widget.Toolbar-->
+    <!--            android:id="@+id/toolbar"-->
+    <!--            android:layout_width="match_parent"-->
+    <!--            android:layout_height="?attr/actionBarSize"-->
+    <!--            android:background="#000000"-->
+    <!--            app:popupTheme="@style/AppTheme.PopupOverlay" />-->
+
+    <!--    </com.google.android.material.appbar.AppBarLayout>-->
+
+    <!--    <androidx.appcompat.widget.Toolbar-->
+    <!--        android:id="@+id/toolbar"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="?attr/actionBarSize"-->
+    <!--        android:background="?attr/colorPrimary"-->
+    <!--        app:popupTheme="@style/AppTheme.PopupOverlay" />-->
 
     <TextureView
         android:id="@+id/texture"
@@ -28,7 +50,20 @@
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintVertical_bias="1.0" />
+
+    <ImageView
+        android:id="@+id/imageViewFlash"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="255"
+        android:scaleType="fitXY"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@android:color/white"
+        tools:visibility="gone" />
 
     <ImageButton
         android:id="@+id/button"
@@ -42,7 +77,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.934"
-        app:srcCompat="@drawable/capture" />
+        app:srcCompat="@drawable/ic_camera_black_24dp" />
+
+    <!--    <android.support.v7.widget.Toolbar-->
+    <!--        android:id="@+id/toolbar2"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:background="#525258"-->
+    <!--        android:minHeight="?attr/actionBarSize"-->
+    <!--        android:theme="?attr/actionBarTheme" />-->
 
     <ImageButton
         android:id="@+id/settings"
@@ -53,20 +96,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/flash"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/settings" />
-
-
-    <ImageView
-        android:id="@+id/imageViewFlash"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="255"
-        app:layout_constraintBottom_toTopOf="parent"
-        app:layout_constraintEnd_toStartOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@android:color/white"
-        tools:visibility="gone" />
+        app:srcCompat="@drawable/ic_settings_black_24dp" />
 
     <ImageButton
         android:id="@+id/flash"
@@ -83,25 +113,25 @@
 
     <ImageButton
         android:id="@+id/switchButton"
-        android:layout_width="49dp"
-        android:layout_height="67dp"
-        android:layout_marginEnd="44dp"
-        android:layout_marginBottom="30dp"
+        android:layout_width="51dp"
+        android:layout_height="48dp"
+        android:layout_marginEnd="72dp"
+        android:layout_marginBottom="48dp"
         android:layout_weight="1"
         android:background="?selectableItemBackgroundBorderless"
         android:scaleType="fitXY"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/switch_camera" />
+        app:srcCompat="@drawable/ic_autorenew_black_24dp" />
 
     <ImageButton
         android:id="@+id/gallery"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="36dp"
+        android:layout_marginBottom="48dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.16"
+        app:layout_constraintEnd_toStartOf="@+id/button"
+        app:layout_constraintHorizontal_bias="0.532"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@android:drawable/ic_menu_mapmode" />
 
