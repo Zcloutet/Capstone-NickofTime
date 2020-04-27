@@ -21,6 +21,7 @@
     <string name="smile_detection">Smile Detection</string>
     <string name="general_motion_detection">General Motion Detection</string>
     <string name="facial_motion_detection">Facial Motion Detection</string>
+    <string name="facial_timeout">Timed Detection Tolerance</string>
 
     <!-- gallery strings -->
     <string name="previous">Previous</string>

@@ -26,4 +26,5 @@
     <string name="title_activity_gallery">Fotos perfectas</string>
     <string name="title_activity_gallery_list">Lista de fotos</string>
     <string name="unknown_error_occurred">Un error desconocido ha ocurrido.</string>
+    <string name="facial_timeout">Tolerancia Cronometrada de Detección</string>
 </resources>

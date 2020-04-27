@@ -68,6 +68,7 @@ import java.util.Date;
 
 import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
 import static com.example.perfectphotoapp.SettingsActivity.FACIALMOTIONSWITCH;
+import static com.example.perfectphotoapp.SettingsActivity.FACIALTIMEOUTSWITCH;
 import static com.example.perfectphotoapp.SettingsActivity.GENERALMOTIONSWITCH;
 import static com.example.perfectphotoapp.SettingsActivity.SHARED_PREFS;
 import static com.example.perfectphotoapp.SettingsActivity.SMILESWITCH;
@@ -86,7 +87,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "PerfectPhoto"; // log tag
     private static final int FRAME_PROCESS_NUMBER = 3;
     private static final int MAX_FACE_AGE = 3;
-    private static final int AUTOMATICPHOTOCOOLDOWNTIME = 30;
+    public static final int FACE_TIMEOUT_AGE = 30;
+    private static final int AUTOMATIC_PHOTO_COOLDOWN_TIME = 30;
 
     CameraManager manager;
     HandlerThread mBackgroundThread;
@@ -123,6 +125,7 @@ public class MainActivity extends AppCompatActivity {
     boolean eyeDetection;
     boolean generalMotionDetection;
     boolean facialMotionDetection;
+    boolean facialTimeout;
 
     private ImageView widthCapturer;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -291,7 +294,8 @@ public class MainActivity extends AppCompatActivity {
         smileDetection = sharedPreferences.getBoolean(SMILESWITCH, true);
         generalMotionDetection = sharedPreferences.getBoolean(GENERALMOTIONSWITCH, true);
         facialMotionDetection = sharedPreferences.getBoolean(FACIALMOTIONSWITCH, true);
-        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, generalMotionDetection, facialMotionDetection);
+        facialTimeout = sharedPreferences.getBoolean(FACIALTIMEOUTSWITCH, true);
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, generalMotionDetection, facialMotionDetection, facialTimeout);
     }
 
 
@@ -694,7 +698,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // take a photo if conditions are met
                         if (automaticPhotoCooldown == 0 && checkPhotoConditions(faces, generalMotion)) {
-                            automaticPhotoCooldown = AUTOMATICPHOTOCOOLDOWNTIME;
+                            automaticPhotoCooldown = AUTOMATIC_PHOTO_COOLDOWN_TIME;
                             runOnUiThread(new Runnable() { // because takePhoto() affects the UI it has to be run on the UI thread
                                 @Override
                                 public void run() {
@@ -906,16 +910,31 @@ public class MainActivity extends AppCompatActivity {
     public boolean checkPhotoConditions(Face[] faceArray, boolean generalMotionDetected) {
         if (generalMotionDetected && generalMotionDetection) return false;
         else {
-            for (Face face : faceArray) {
-                if (!face.smile && smileDetection) return false;
-                else if (!face.eyesOpen && eyeDetection) return false;
-                else if (!face.noMotion && facialMotionDetection) return false;
-            }
             if ((smileDetection || eyeDetection || facialMotionDetection) && (faceArray.length == 0)) return false;
+            for (Face face : faceArray) {
+                boolean timeoutUsed = !facialTimeout; // only give a timeout use if timeout is turned on
+                if (!face.smile && smileDetection)
+                    if (!timeoutUsed && face.ageUnchanged >= FACE_TIMEOUT_AGE)
+                        timeoutUsed = true;
+                    else {
+                        return false;
+                    }
+                if (!face.eyesOpen && eyeDetection)
+                    if (!timeoutUsed && face.ageUnchanged >= FACE_TIMEOUT_AGE)
+                        timeoutUsed = true;
+                    else {
+                        return false;
+                    }
+                if (!face.noMotion && facialMotionDetection)
+                    if (!timeoutUsed && face.ageUnchanged >= FACE_TIMEOUT_AGE)
+                        timeoutUsed = true;
+                    else {
+                        return false;
+                    }
+            }
         }
         return true;
     }
-
 
     //onTouchListener
 

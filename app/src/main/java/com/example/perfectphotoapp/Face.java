@@ -18,6 +18,7 @@ public class Face {
     protected Mat croppedimg;
 
     public int age;
+    public int ageUnchanged;
     public boolean smile;
     public boolean eyesOpen;
     public boolean noMotion;
@@ -28,6 +29,7 @@ public class Face {
         this.right = right;
         this.bottom = bottom;
         this.age = 0;
+        this.ageUnchanged = 0;
     }
 
     // make an android graphics rectangle describing the location of this face
@@ -71,6 +73,15 @@ public class Face {
         return matches;
     }
 
+    public static boolean hasNotChanged(Face oldFace, Face newFace) {
+        if (oldFace.eyesOpen == newFace.eyesOpen &&
+            oldFace.smile == newFace.smile &&
+            oldFace.noMotion == newFace.noMotion) {
+            return true;
+        }
+        return false;
+    }
+
     public static Face[] compareFaces(Face[] oldFaces, Face[] newFaces, int maxAge) {
         List<Face> combinedFaces = new ArrayList<>(Arrays.asList(newFaces));
         List<Integer> matches;
@@ -79,8 +90,15 @@ public class Face {
             matches = matchFaces(oldFaces[i], combinedFaces);
             if (matches.size() == 0) {
                 ++oldFaces[i].age;
+                ++oldFaces[i].ageUnchanged;
                 if (oldFaces[i].age <= maxAge) {
                     combinedFaces.add(oldFaces[i]);
+                }
+            }
+            else {
+                int matchIndex = matches.get(i);
+                if (hasNotChanged(combinedFaces.get(matchIndex), oldFaces[i])) {
+                    combinedFaces.get(matchIndex).ageUnchanged = oldFaces[i].ageUnchanged + 1;
                 }
             }
         }
