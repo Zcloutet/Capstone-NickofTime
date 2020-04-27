@@ -17,17 +17,20 @@ public class SettingsActivity extends AppCompatActivity {
     private Switch smileDetection;
     private Switch generalMotionDetection;
     private Switch facialMotionDetection;
+    private Switch facialTimeout;
 
     public static final String SHARED_PREFS = "sharedPrefs";
     public static final String EYESWITCH = "EYESWITCH";
     public static final String SMILESWITCH = "SMILESWITCH";
     public static final String GENERALMOTIONSWITCH = "GENERALMOTIONSWITCH";
     public static final String FACIALMOTIONSWITCH = "FACIALMOTIONSWITCH";
+    public static final String FACIALTIMEOUTSWITCH = "FACIALTIMEOUTSWITCH";
 
     private boolean eyeSwitchOnOff;
     private boolean smileSwitchOnOff;
     private boolean generalMotionSwitchOnOff;
     private boolean facialMotionSwitchOnOff;
+    private boolean facialTimeoutSwitchOnOff;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +48,7 @@ public class SettingsActivity extends AppCompatActivity {
         smileDetection = (Switch) findViewById(R.id.smileDetection);
         generalMotionDetection = (Switch) findViewById(R.id.generalMotionDetection);
         facialMotionDetection = (Switch) findViewById(R.id.facialMotionDetection);
+        facialTimeout = (Switch) findViewById(R.id.facialTimeout);
 
         eyeDetection.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -68,6 +72,12 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 saveFacialMotionDetectionMode();
+            }
+        });
+        facialTimeout.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                saveFacialTimeoutMode();
             }
         });
 
@@ -110,22 +120,34 @@ public class SettingsActivity extends AppCompatActivity {
         editor.apply();
     }
 
+    public void saveFacialTimeoutMode(){
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putBoolean(FACIALTIMEOUTSWITCH, facialTimeout.isChecked());
+
+
+        editor.apply();
+    }
+
     public void loadData(){
         SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
         eyeSwitchOnOff = sharedPreferences.getBoolean(EYESWITCH, true);
         smileSwitchOnOff = sharedPreferences.getBoolean(SMILESWITCH, true);
         generalMotionSwitchOnOff = sharedPreferences.getBoolean(GENERALMOTIONSWITCH, true);
         facialMotionSwitchOnOff = sharedPreferences.getBoolean(FACIALMOTIONSWITCH, true);
+        facialTimeoutSwitchOnOff = sharedPreferences.getBoolean(FACIALTIMEOUTSWITCH, true);
     }
     public void updateSwitches(){
         eyeDetection.setChecked(eyeSwitchOnOff);
         smileDetection.setChecked(smileSwitchOnOff);
         generalMotionDetection.setChecked(generalMotionSwitchOnOff);
         facialMotionDetection.setChecked(facialMotionSwitchOnOff);
+        facialTimeout.setChecked(facialTimeoutSwitchOnOff);
     }
 
     public void goBack(){
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
+        //Intent intent = new Intent(this, MainActivity.class);
+        //startActivity(intent);
+        this.finish();
     }
 }

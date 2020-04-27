@@ -39,6 +39,7 @@ public class CameraOverlayView extends View {
     boolean eyeDetection = true;
     boolean generalMotionDetection = true;
     boolean facialMotionDetection = true;
+    boolean facialTimeout = true;
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -92,20 +93,21 @@ public class CameraOverlayView extends View {
         if (facialMotionDetection) ++count;
 
         if (faces != null) {
-            for (int i=0; i<faces.length; i++) {
+            for (Face face : faces) {
                 int faceCount = 0;
 
-                if (smileDetection && faces[i].smile) {
+                if (smileDetection && face.smile) {
                     ++faceCount;
                 }
-                if (eyeDetection && faces[i].eyesOpen) {
+                if (eyeDetection && face.eyesOpen) {
                     ++faceCount;
                 }
-                if (facialMotionDetection && faces[i].noMotion) {
+                if (facialMotionDetection && face.noMotion) {
                     ++faceCount;
                 }
 
                 Paint paint;
+
                 if (faceCount == count) {
                     paint = greenPaint;
                 }
@@ -116,22 +118,38 @@ public class CameraOverlayView extends View {
                     paint = yellowPaint;
                 }
 
-                Rect rect = imageToCanvas(faces[i].getRect(), w, h, imagew, imageh, sensorOrientation);
+                float timeoutPercentage = 0;
+
+                if ((faceCount == count-1) && facialTimeout) {
+                    timeoutPercentage = (float) face.ageUnchanged / MainActivity.FACE_TIMEOUT_AGE;
+                    if (timeoutPercentage >= 0.5) {
+                        ++count;
+                    }
+                    if (timeoutPercentage > 1) {
+                        paint = greenPaint;
+                    }
+                }
+
+                Rect rect = imageToCanvas(face.getRect(), w, h, imagew, imageh, sensorOrientation);
 
                 canvas.drawRect(rect, paint);
 
                 int iconCount = 0;
 
                 if (smileDetection) {
-                    drawSmiley(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].smile);
+                    drawSmiley(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.smile);
                     ++iconCount;
                 }
                 if (facialMotionDetection) {
-                    drawMotion(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
+                    drawMotion(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.noMotion);
                     ++iconCount;
                 }
                 if (eyeDetection) {
-                    drawEye(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, faces[i].eyesOpen);
+                    drawEye(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.eyesOpen);
+                    ++iconCount;
+                }
+                if (facialTimeout && timeoutPercentage >= 0.5) {
+                    drawTimer(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, timeoutPercentage);
                     ++iconCount;
                 }
             }
@@ -199,6 +217,14 @@ public class CameraOverlayView extends View {
         }
     }
 
+    public void drawTimer(int x, int y, int r, Paint paint, Canvas canvas, float percentage) {
+        canvas.drawCircle(x,y,r,paint);
+        canvas.drawLine(x,y,x,y-r*2/3,paint);
+        if (percentage < 1) {
+            canvas.drawLine(x,y,(float) (x+r*2/3*Math.sin(percentage*6.2831853)),(float) (y-r*2/3*Math.cos(percentage*6.2831853)), paint);
+        }
+    }
+
     // convert a rectangle on the camera image to a rectangle on the canvas
     public static Rect imageToCanvas(Rect r, int w, int h, int imagew, int imageh, int sensorOrientation) {
         Rect r2 = new Rect();
@@ -245,11 +271,12 @@ public class CameraOverlayView extends View {
         this.sensorOrientation = sensorOrientation;
     }
 
-    public void updatePreferences(boolean smileDetection, boolean faceDetection, boolean generalMotionDetection, boolean facialMotionDetection) {
+    public void updatePreferences(boolean smileDetection, boolean faceDetection, boolean generalMotionDetection, boolean facialMotionDetection, boolean facialTimeout) {
         this.smileDetection = smileDetection;
         this.eyeDetection = faceDetection;
         this.generalMotionDetection = generalMotionDetection;
         this.facialMotionDetection = facialMotionDetection;
+        this.facialTimeout = facialTimeout;
     }
 
     /*

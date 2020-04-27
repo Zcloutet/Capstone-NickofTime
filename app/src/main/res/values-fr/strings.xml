@@ -26,4 +26,5 @@
     <string name="flash_unavailable">Le flash n\'est pas disponible.</string>
     <string name="failed_to_save_image">Échec en sauvegardant la photo.</string>
     <string name="failed_to_delete">Échec en supprimant cette photo.</string>
+    <string name="facial_timeout">Tolérance Temporel de la Détection</string>
 </resources>
