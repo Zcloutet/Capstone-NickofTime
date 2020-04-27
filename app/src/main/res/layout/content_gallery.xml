@@ -10,6 +10,10 @@
     tools:context=".Gallery"
     tools:showIn="@layout/activity_gallery">
 
+
+
+
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="0dp"
@@ -20,6 +24,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools2:src="@tools:sample/avatars[0]" />
+
+    <ImageButton
+        android:id="@+id/go_back"
+        android:layout_width="41dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="4dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:scaleType="fitXY"
+        android:src="@drawable/ic_keyboard_arrow_left_black_24dp"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout_editor_absoluteY="48dp" />
+
 
     <Button
         android:id="@+id/previous"

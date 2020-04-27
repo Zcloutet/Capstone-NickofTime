@@ -17,10 +17,13 @@ import androidx.appcompat.widget.Toolbar;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.File;
+
+import static android.widget.Toast.makeText;
 
 public class GalleryActivity extends AppCompatActivity {
 
@@ -34,6 +37,7 @@ public class GalleryActivity extends AppCompatActivity {
 
     private void initialize(){
 
+
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
         images = directory.listFiles();
@@ -41,11 +45,24 @@ public class GalleryActivity extends AppCompatActivity {
         currentIndex = getIntent().getIntExtra("IMAGE_ID",0);
 
         totalImages = images.length;
+        final ImageButton go_back = findViewById(R.id.go_back);
+
+        go_back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+//                Toast.makeText(GalleryActivity.this, "clicked", Toast.LENGTH_LONG).show();
+                goBack();
+            }
+        });
     }
+
+
     float x1,x2;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
         setContentView(R.layout.activity_gallery);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -54,6 +71,7 @@ public class GalleryActivity extends AppCompatActivity {
 
 
         Button btnNext,btnPrevious,btnDelete, shareButton;
+
 
 
         selectedImage.setOnTouchListener(new View.OnTouchListener() {
@@ -101,6 +119,7 @@ public class GalleryActivity extends AppCompatActivity {
         btnDelete = findViewById(R.id.delete);
         shareButton = findViewById(R.id.share);
 
+
         shareButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -141,12 +160,17 @@ public class GalleryActivity extends AppCompatActivity {
                     currentIndex = 0;
                     loadImage();
                 }else{
-                    Toast.makeText(GalleryActivity.this, R.string.failed_to_delete, Toast.LENGTH_SHORT).show();
+                    makeText(GalleryActivity.this, R.string.failed_to_delete, Toast.LENGTH_SHORT).show();
                 }
             }
         });
 
 
+    }
+
+    public void goBack(){
+        Intent intent = new Intent(this, GalleryList.class);
+        startActivity(intent);
     }
 
     private void doNext(){
@@ -164,7 +188,7 @@ public class GalleryActivity extends AppCompatActivity {
         currentIndex = (currentIndex-1);
         if(currentIndex<0){
             currentIndex = 0;
-            Toast.makeText(this, R.string.no_previous_photo, Toast.LENGTH_SHORT).show();
+            makeText(this, R.string.no_previous_photo, Toast.LENGTH_SHORT).show();
             return;
         }
         loadImage();
@@ -184,7 +208,7 @@ public class GalleryActivity extends AppCompatActivity {
             selectedImage.setImageBitmap(BitmapFactory.decodeFile(currentImage.getAbsolutePath()));
         }else{
             selectedImage.setImageResource(android.R.drawable.stat_notify_error);
-            Toast.makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
+            makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
         }
     }
 
