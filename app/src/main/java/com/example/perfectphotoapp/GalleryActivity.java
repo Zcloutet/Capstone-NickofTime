@@ -70,7 +70,8 @@ public class GalleryActivity extends AppCompatActivity {
         selectedImage= findViewById(R.id.imageView);
 
 
-        Button btnNext,btnPrevious,btnDelete, shareButton;
+//        Button btnNext,btnPrevious,shareButton;
+        ImageButton btnDelete, shareButton;
 
 
 
@@ -114,8 +115,8 @@ public class GalleryActivity extends AppCompatActivity {
             }
         });
 
-        btnNext = findViewById(R.id.next);
-        btnPrevious = findViewById(R.id.previous);
+//        btnNext = findViewById(R.id.next);
+//        btnPrevious = findViewById(R.id.previous);
         btnDelete = findViewById(R.id.delete);
         shareButton = findViewById(R.id.share);
 
@@ -133,19 +134,19 @@ public class GalleryActivity extends AppCompatActivity {
             }
         });
 
-        btnNext.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-               doNext();
-            }
-        });
-
-        btnPrevious.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                doPrevious();
-            }
-        });
+//        btnNext.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//               doNext();
+//            }
+//        });
+//
+//        btnPrevious.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                doPrevious();
+//            }
+//        });
 
 
         btnDelete.setOnClickListener(new View.OnClickListener() {
