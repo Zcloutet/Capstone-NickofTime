@@ -22,6 +22,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import java.io.File;
@@ -44,13 +45,36 @@ public class GalleryList extends AppCompatActivity {
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
         images = directory.listFiles();
+        ImageButton go_back = findViewById(R.id.go_back);
+        go_back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                goBack();
+            }
+        });
 
     }
+
+    public void goBack(){
+        Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent);
+    }
+
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+//        go_back.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+////                goBack();
+//            }
+//        });
+
         setContentView(R.layout.activity_gallery_list);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
