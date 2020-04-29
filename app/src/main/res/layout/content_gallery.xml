@@ -97,6 +97,17 @@
 
 
     <ImageButton
+        android:id="@+id/export"
+        android:layout_width="25dp"
+        android:layout_height="30dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:scaleType="fitXY"
+        android:src="@drawable/ic_import_export_black_24dp"
+        app:layout_constraintEnd_toStartOf="@+id/share"
+        app:layout_constraintStart_toEndOf="@+id/delete"
+        tools:layout_editor_absoluteY="528dp" />
+
+    <ImageButton
         android:id="@+id/btnInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

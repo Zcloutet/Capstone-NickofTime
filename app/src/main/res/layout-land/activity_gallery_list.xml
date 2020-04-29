@@ -20,74 +20,35 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-
-    <ImageButton
-        android:id="@+id/share"
-        android:layout_width="23dp"
-        android:layout_height="29dp"
-        android:layout_marginEnd="28dp"
-        android:background="?selectableItemBackgroundBorderless"
-        android:scaleType="fitXY"
-        android:src="@drawable/ic_share_black_24dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/fab"
-        app:layout_constraintTop_toBottomOf="@+id/appBarLayout3" />
-
-    <ImageButton
-        android:id="@+id/export"
-        android:layout_width="23dp"
-        android:layout_height="29dp"
-        android:layout_marginTop="20dp"
-        android:background="?selectableItemBackgroundBorderless"
-        android:scaleType="fitXY"
-        android:src="@drawable/ic_import_export_black_24dp"
-        app:layout_constraintEnd_toStartOf="@+id/share"
-        app:layout_constraintHorizontal_bias="0.482"
-        app:layout_constraintStart_toEndOf="@+id/delete"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar" />
-
-    <ImageButton
-        android:id="@+id/delete"
-        android:layout_width="23dp"
-        android:layout_height="29dp"
-        android:layout_marginStart="44dp"
-        android:background="?selectableItemBackgroundBorderless"
-        android:scaleType="fitXY"
-        android:src="@drawable/ic_delete_black_24dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/appBarLayout3"
-        app:layout_constraintVertical_bias="0.508" />
-
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="108dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="280dp"
         android:fontFamily="@font/abhaya_libre_medium"
         android:text="Perfect Photos"
         android:textSize="32dp"
-        app:layout_constraintBottom_toTopOf="@+id/toolbar"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.479" />
+        app:layout_constraintHorizontal_bias="0.953"
+        app:layout_constraintStart_toEndOf="@+id/go_back"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout3"
-        android:layout_width="398dp"
-        android:layout_height="531dp"
+        android:layout_width="448dp"
+        android:layout_height="220dp"
         android:theme="@style/AppTheme.AppBarOverlay"
         app:layout_constraintBottom_toTopOf="@+id/fab"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/go_back">
+        app:layout_constraintTop_toBottomOf="@+id/textView">
 
         <include
             android:id="@+id/include3"
             layout="@layout/content_gallery_list"
-            android:layout_width="387dp"
-            android:layout_height="561dp" />
-
+            android:layout_width="492dp"
+            android:layout_height="260dp" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -100,13 +61,12 @@
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
-        android:layout_width="377dp"
-        android:layout_height="545dp"
+        android:layout_width="481dp"
+        android:layout_height="281dp"
         android:background="?attr/colorPrimary"
-        app:layout_constraintBottom_toTopOf="@+id/fab"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/go_back"
+        app:layout_constraintTop_toBottomOf="@+id/textView"
         app:popupTheme="@style/AppTheme.PopupOverlay" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
