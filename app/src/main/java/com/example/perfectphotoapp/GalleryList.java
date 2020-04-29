@@ -1,7 +1,6 @@
 package com.example.perfectphotoapp;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -11,21 +10,13 @@ import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
-import androidx.recyclerview.widget.ListAdapter;
-import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -53,9 +44,7 @@ public class GalleryList extends AppCompatActivity {
     void updateTitleBar(){
 
         if(markedPhotos.size()==0){
-            toolbar.setTitle("List of photos");
         }else{
-            toolbar.setTitle(markedPhotos.size()+ " photos selected");
         }
     }
 
@@ -201,31 +190,23 @@ public class GalleryList extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-
-//        go_back.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-////                goBack();
-//            }
-//        });
-
         setContentView(R.layout.activity_gallery_list);
+        ImageButton btnDelete,btnExport, btnShare;
 
-        toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        btnDelete=findViewById(R.id.delete);
+        btnExport = findViewById(R.id.btnExport);
 
-
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        btnDelete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-               if(markedPhotos.size()==0){
-                   Toast.makeText(GalleryList.this, "No photos selected", Toast.LENGTH_SHORT).show();
-               }
+                handleDelete();
+            }
+        });
 
-               handleDelete();
-//                handleExport();
+        btnExport.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                handleExport();
             }
         });
 
@@ -307,7 +288,7 @@ public class GalleryList extends AppCompatActivity {
 
 
     private File exportFile(File src) throws IOException {
-        String dstPath = Environment.DIRECTORY_DCIM + File.separator + "PerfectPhoto" + File.separator;
+        String dstPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + File.separator + "PerfectPhoto" + File.separator;
         File dst = new File(dstPath);
         //if folder does not exist
         if (!dst.exists()) {
