@@ -220,8 +220,8 @@ public class GalleryList extends AppCompatActivity {
                    Toast.makeText(GalleryList.this, "No photos selected", Toast.LENGTH_SHORT).show();
                }
 
-//               handleDelete();
-                handleExport();
+               handleDelete();
+//                handleExport();
             }
         });
 
@@ -303,7 +303,7 @@ public class GalleryList extends AppCompatActivity {
 
 
     private File exportFile(File src) throws IOException {
-        String dstPath = Environment.getExternalStorageDirectory() + File.separator + "PerfectPhoto" + File.separator;
+        String dstPath = Environment.DIRECTORY_DCIM + File.separator + "PerfectPhoto" + File.separator;
         File dst = new File(dstPath);
         //if folder does not exist
         if (!dst.exists()) {
