@@ -1,5 +1,6 @@
 package com.example.perfectphotoapp;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -14,14 +15,23 @@ import com.google.android.material.snackbar.Snackbar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.transition.Slide;
+import android.transition.Transition;
+import android.transition.TransitionManager;
+import android.transition.TransitionValues;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.util.Calendar;
+import java.util.Date;
 
 import static android.widget.Toast.makeText;
 
@@ -32,6 +42,12 @@ public class GalleryActivity extends AppCompatActivity {
     File currentImage;
     int currentIndex = 0;
     int totalImages = 0;
+    ViewGroup transition;
+    final int duration = 1500;
+    Transition slideLeft = new Slide(Gravity.LEFT);
+    Transition slideRight= new Slide(Gravity.RIGHT);
+
+
     private Uri imageUri;
     private Intent intent;
 
@@ -40,7 +56,13 @@ public class GalleryActivity extends AppCompatActivity {
 
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
-        images = directory.listFiles();
+        File[] temp = directory.listFiles();
+        images = new File[temp.length];
+        int j=0;
+        for(int i=temp.length-1;i>=0;i--){
+            images[j]= temp[i];
+            j++;
+        }
 
         currentIndex = getIntent().getIntExtra("IMAGE_ID",0);
 
@@ -68,10 +90,10 @@ public class GalleryActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         selectedImage= findViewById(R.id.imageView);
-
+        transition = findViewById(R.id.trans_container);
 
 //        Button btnNext,btnPrevious,shareButton;
-        ImageButton btnDelete, shareButton;
+        ImageButton btnDelete, shareButton,btnInfo;
 
 
 
@@ -95,7 +117,7 @@ public class GalleryActivity extends AppCompatActivity {
                             // Left to Right swipe action
                             if (x2 > x1)
                             {
-                                doNext();
+                                doPrevious();
 
 //                                Toast.makeText(this, "Left to Right swipe [Next]", Toast.LENGTH_SHORT).show ();
                             }
@@ -103,7 +125,7 @@ public class GalleryActivity extends AppCompatActivity {
                             // Right to left swipe action
                             else
                             {
-                                doPrevious();
+                                doNext();
 //                                Toast.makeText(this, "Right to Left swipe [Previous]", Toast.LENGTH_SHORT).show ();
                             }
 
@@ -119,7 +141,17 @@ public class GalleryActivity extends AppCompatActivity {
 //        btnPrevious = findViewById(R.id.previous);
         btnDelete = findViewById(R.id.delete);
         shareButton = findViewById(R.id.share);
+        btnInfo = findViewById(R.id.btnInfo);
 
+        btnInfo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                AlertDialog.Builder b = new AlertDialog.Builder(GalleryActivity.this);
+                b.setTitle("Info");
+                b.setMessage("Created at: "+ timeStamp.toLocaleString());
+                b.show();
+            }
+        });
 
         shareButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -167,6 +199,8 @@ public class GalleryActivity extends AppCompatActivity {
         });
 
 
+        slideLeft.setDuration(duration);
+        slideRight.setDuration(duration);
     }
 
     public void goBack(){
@@ -175,24 +209,39 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void doNext(){
+
+        selectedImage.setVisibility(View.INVISIBLE);
+
         if(totalImages == 0){
             currentIndex = 0;
             loadImage();
             return;
         }
         currentIndex = (currentIndex+1)% totalImages;
+        TransitionManager.endTransitions(transition);
+        TransitionManager.beginDelayedTransition(transition, new Slide(Gravity.RIGHT));
         loadImage();
+        selectedImage.setVisibility(View.VISIBLE);
     }
 
 
     private void doPrevious(){
+        selectedImage.setVisibility(View.INVISIBLE);
+
         currentIndex = (currentIndex-1);
         if(currentIndex<0){
             currentIndex = 0;
-            makeText(this, R.string.no_previous_photo, Toast.LENGTH_SHORT).show();
+            selectedImage.setVisibility(View.VISIBLE);
+
+            Toast.makeText(this, R.string.no_previous_photo, Toast.LENGTH_SHORT).show();
             return;
         }
+
+        TransitionManager.beginDelayedTransition(transition, new Slide(Gravity.LEFT));
+
         loadImage();
+        selectedImage.setVisibility(View.VISIBLE);
+
     }
 
     @Override
@@ -203,9 +252,24 @@ public class GalleryActivity extends AppCompatActivity {
         loadImage();
     }
 
+    Date timeStamp;
     private void loadImage(){
         if(currentIndex < totalImages){
             currentImage = images[currentIndex];
+            String fileName = currentImage.getName();
+
+            timeStamp = new Date();
+            try{
+                fileName= fileName.split("_")[1];
+                fileName=fileName.split("\\.")[0];
+
+                long time = Long.parseLong(fileName);
+                timeStamp = new Date(time);
+
+            }catch(Exception e){
+                Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+
             selectedImage.setImageBitmap(BitmapFactory.decodeFile(currentImage.getAbsolutePath()));
         }else{
             selectedImage.setImageResource(android.R.drawable.stat_notify_error);

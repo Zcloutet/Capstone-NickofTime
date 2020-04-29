@@ -24,27 +24,91 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class GalleryList extends AppCompatActivity {
 
-    File[] images;
+    ArrayList<File> images;
+
+    //selected photo array
+    ArrayList<Integer> toDelete;
+    GridAdapter adapter;
+    Toolbar toolbar;
+    void updateTitleBar(){
+
+        if(toDelete.size()==0){
+            toolbar.setTitle("List of photos");
+        }else{
+            toolbar.setTitle(toDelete.size()+ " photos selected");
+        }
+    }
+
+
+    //delete selected photos
+    void handleDelete(){
+        if(images.size() == 0|| toDelete.size()==0){
+            return;
+        }
+
+        for(int i=0;i<toDelete.size();i++){
+            images.get(toDelete.get(i)).delete();
+            images.remove(toDelete.get(i));
+
+        }
+        Toast.makeText(GalleryList.this, "Successfully deleted selected photos", Toast.LENGTH_SHORT).show();
+        toDelete.clear();
+        updateTitleBar();
+        images.clear();
+        initialize();
+
+
+
+    }
+
+
     onPhotoClickListener listener = new onPhotoClickListener() {
         @Override
-        public void onClick(int i) {
+        public void onClick(View v,int i) {
+            if(toDelete.size()!=0){
+                handleSelection(v,i);
+                return;
+            }
+
             Intent ij = new Intent();
             ij.setClass(getApplicationContext(),GalleryActivity.class);
             ij.putExtra("IMAGE_ID",i);
             startActivity(ij);
         }
+
+
+        @Override
+        public void onLongClick(View v,int i) {
+           handleSelection(v,i);
+            }
+
+            void handleSelection(View v,int i){
+                if(toDelete.contains(i)){
+                    toDelete.remove(toDelete.indexOf(i));
+//                    Toast.makeText(GalleryList.this, "Unselected", Toast.LENGTH_SHORT).show();
+                    v.setBackgroundResource(0);
+
+                }else {
+                    v.setBackgroundResource(R.drawable.border);
+                    v.setElevation(5);
+//                    Toast.makeText(GalleryList.this, "Selected", Toast.LENGTH_SHORT).show();
+                    toDelete.add(i);
+                }
+                updateTitleBar();
+            }
     };
 
     private void initialize(){
 
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
-        images = directory.listFiles();
         ImageButton go_back = findViewById(R.id.go_back);
         go_back.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -52,8 +116,20 @@ public class GalleryList extends AppCompatActivity {
                 goBack();
             }
         });
+        images = new ArrayList<File>();
+        File[] f=directory.listFiles();
+        for(int i=f.length-1;i>=0;i--){
+            images.add(f[i]);
+        }
+//                directory.listFiles();
+        toDelete = new ArrayList<Integer>();
 
+        adapter = new GridAdapter(getApplicationContext(),images);
+        adapter.setOnClick(listener);
+        GridView grid = findViewById(R.id.grid);
+        grid.setAdapter(adapter);
     }
+        
 
     public void goBack(){
         Intent intent = new Intent(this, MainActivity.class);
@@ -76,44 +152,52 @@ public class GalleryList extends AppCompatActivity {
 //        });
 
         setContentView(R.layout.activity_gallery_list);
-        Toolbar toolbar = findViewById(R.id.toolbar);
+
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        initialize();
+
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+               if(toDelete.size()==0){
+                   Toast.makeText(GalleryList.this, "No photos selected", Toast.LENGTH_SHORT).show();
+               }
+
+               handleDelete();
             }
         });
 
-        GridAdapter adapter = new GridAdapter(getApplicationContext(),images);
-        adapter.setOnClick(listener);
-        GridView grid = findViewById(R.id.grid);
-        grid.setAdapter(adapter);
+
+
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        initialize();
+
+    }
 
     class GridAdapter extends BaseAdapter{
-        File[] images;
+        ArrayList<File> imgs;
         Context context;
         onPhotoClickListener listener;
-        public GridAdapter(Context c, File[] i){
-            images= i;
+        public GridAdapter(Context c, ArrayList<File> i){
+            imgs= i;
             context = c;
         }
 
         @Override
         public int getCount() {
-            return images.length;
+            return imgs.size();
         }
 
         @Override
         public File getItem(int i) {
-            return images[i];
+            return imgs.get(i);
         }
 
         @Override
@@ -127,15 +211,23 @@ public class GalleryList extends AppCompatActivity {
             View parent = LayoutInflater.from(context).inflate(R.layout.thumbnail,null);
             ImageView v = parent.findViewById(R.id.thumb);
             v.setImageBitmap(BitmapFactory.decodeFile(getItem(i).getAbsolutePath()));
+
             v.setClickable(true);
             v.setOnClickListener(
                     new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            listener.onClick(index);
+                            listener.onClick(view,index);
                         }
                     }
             );
+            v.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    listener.onLongClick(view,index);
+                    return true;
+                }
+            });
             return parent;
         }
 
@@ -146,6 +238,7 @@ public class GalleryList extends AppCompatActivity {
 
 
     interface onPhotoClickListener{
-        void onClick(int i);
+        void onClick(View v,int i);
+        void onLongClick(View v,int i);
     }
 }
