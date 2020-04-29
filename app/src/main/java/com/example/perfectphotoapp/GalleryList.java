@@ -134,8 +134,12 @@ public class GalleryList extends AppCompatActivity {
                     markedPhotos.remove(markedPhotos.indexOf(i));
 //                    Toast.makeText(GalleryList.this, "Unselected", Toast.LENGTH_SHORT).show();
                     v.setBackgroundResource(0);
+                    ImageView c = (ImageView)v;
+                    c.setImageAlpha(255);
 
                 }else {
+                    ImageView c = (ImageView)v;
+                    c.setImageAlpha(123);
                     v.setBackgroundResource(R.drawable.border);
                     v.setElevation(5);
 //                    Toast.makeText(GalleryList.this, "Selected", Toast.LENGTH_SHORT).show();
