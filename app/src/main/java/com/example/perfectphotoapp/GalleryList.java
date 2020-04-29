@@ -1,10 +1,14 @@
 package com.example.perfectphotoapp;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -13,6 +17,7 @@ import com.google.android.material.snackbar.Snackbar;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,6 +35,11 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 
 public class GalleryList extends AppCompatActivity {
@@ -37,32 +47,32 @@ public class GalleryList extends AppCompatActivity {
     ArrayList<File> images;
 
     //selected photo array
-    ArrayList<Integer> toDelete;
+    ArrayList<Integer> markedPhotos;
     GridAdapter adapter;
     Toolbar toolbar;
     void updateTitleBar(){
 
-        if(toDelete.size()==0){
+        if(markedPhotos.size()==0){
             toolbar.setTitle("List of photos");
         }else{
-            toolbar.setTitle(toDelete.size()+ " photos selected");
+            toolbar.setTitle(markedPhotos.size()+ " photos selected");
         }
     }
 
 
     //delete selected photos
     void handleDelete(){
-        if(images.size() == 0|| toDelete.size()==0){
+        if(images.size() == 0|| markedPhotos.size()==0){
             return;
         }
 
-        for(int i=0;i<toDelete.size();i++){
-            images.get(toDelete.get(i)).delete();
-            images.remove(toDelete.get(i));
+        for(int i=0;i<markedPhotos.size();i++){
+            images.get(markedPhotos.get(i)).delete();
+            images.remove(markedPhotos.get(i));
 
         }
         Toast.makeText(GalleryList.this, "Successfully deleted selected photos", Toast.LENGTH_SHORT).show();
-        toDelete.clear();
+        markedPhotos.clear();
         updateTitleBar();
         images.clear();
         initialize();
@@ -71,11 +81,38 @@ public class GalleryList extends AppCompatActivity {
 
     }
 
+    void handleExport(){
+
+        if(!isWriteStoragePermissionGranted()){
+            Toast.makeText(this, "Can't export the images. Give permissions first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if(images.size() == 0|| markedPhotos.size()==0){
+            return;
+        }
+
+        for(int i=0;i<markedPhotos.size();i++){
+            try {
+                exportFile(images.get(markedPhotos.get(i)));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            images.remove(markedPhotos.get(i));
+
+        }
+        Toast.makeText(GalleryList.this, "Successfully exported selected photos", Toast.LENGTH_SHORT).show();
+        markedPhotos.clear();
+        updateTitleBar();
+        images.clear();
+        initialize();
+
+    }
+
 
     onPhotoClickListener listener = new onPhotoClickListener() {
         @Override
         public void onClick(View v,int i) {
-            if(toDelete.size()!=0){
+            if(markedPhotos.size()!=0){
                 handleSelection(v,i);
                 return;
             }
@@ -93,8 +130,8 @@ public class GalleryList extends AppCompatActivity {
             }
 
             void handleSelection(View v,int i){
-                if(toDelete.contains(i)){
-                    toDelete.remove(toDelete.indexOf(i));
+                if(markedPhotos.contains(i)){
+                    markedPhotos.remove(markedPhotos.indexOf(i));
 //                    Toast.makeText(GalleryList.this, "Unselected", Toast.LENGTH_SHORT).show();
                     v.setBackgroundResource(0);
 
@@ -102,7 +139,7 @@ public class GalleryList extends AppCompatActivity {
                     v.setBackgroundResource(R.drawable.border);
                     v.setElevation(5);
 //                    Toast.makeText(GalleryList.this, "Selected", Toast.LENGTH_SHORT).show();
-                    toDelete.add(i);
+                    markedPhotos.add(i);
                 }
                 updateTitleBar();
             }
@@ -125,7 +162,7 @@ public class GalleryList extends AppCompatActivity {
             images.add(f[i]);
         }
 //                directory.listFiles();
-        toDelete = new ArrayList<Integer>();
+        markedPhotos = new ArrayList<Integer>();
 
         adapter = new GridAdapter(getApplicationContext(),images);
         adapter.setOnClick(listener);
@@ -179,11 +216,12 @@ public class GalleryList extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-               if(toDelete.size()==0){
+               if(markedPhotos.size()==0){
                    Toast.makeText(GalleryList.this, "No photos selected", Toast.LENGTH_SHORT).show();
                }
 
-               handleDelete();
+//               handleDelete();
+                handleExport();
             }
         });
 
@@ -262,4 +300,77 @@ public class GalleryList extends AppCompatActivity {
         void onClick(View v,int i);
         void onLongClick(View v,int i);
     }
+
+
+    private File exportFile(File src) throws IOException {
+        String dstPath = Environment.getExternalStorageDirectory() + File.separator + "PerfectPhoto" + File.separator;
+        File dst = new File(dstPath);
+        //if folder does not exist
+        if (!dst.exists()) {
+            if (!dst.mkdir()) {
+                return null;
+            }
+        }
+
+        File expFile = new File(dst.getPath() + File.separator + src.getName());
+        FileChannel inChannel = null;
+        FileChannel outChannel = null;
+
+        try {
+            inChannel = new FileInputStream(src).getChannel();
+            outChannel = new FileOutputStream(expFile).getChannel();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            inChannel.transferTo(0, inChannel.size(), outChannel);
+        } finally {
+            if (inChannel != null)
+                inChannel.close();
+            if (outChannel != null)
+                outChannel.close();
+        }
+
+        return expFile;
+    }
+
+    public  boolean isReadStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED) {
+//                Log.v(TAG,"Permission is granted1");
+                return true;
+            } else {
+
+//                Log.v(TAG,"Permission is revoked1");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 3);
+                return false;
+            }
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+//            Log.v(TAG,"Permission is granted1");
+            return true;
+        }
+    }
+
+    public  boolean isWriteStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED) {
+//                Log.v(TAG,"Permission is granted2");
+                return true;
+            } else {
+
+//                Log.v(TAG,"Permission is revoked2");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 2);
+                return false;
+            }
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+//            Log.v(TAG,"Permission is granted2");
+            return true;
+        }
+    }
+
 }

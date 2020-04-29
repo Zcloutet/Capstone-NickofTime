@@ -215,8 +215,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        captureImageReader = ImageReader.newInstance(400,800,ImageFormat.JPEG,1);
-        captureImageReader.setOnImageAvailableListener(captureImageAvailableListener,mBackgroundHandler);
 
         ImageButton settings = findViewById(R.id.settings);
         settings.setOnClickListener(new View.OnClickListener() {
@@ -225,6 +223,9 @@ public class MainActivity extends AppCompatActivity {
                 openSettingsPage();
             }
         });
+
+        captureImageReader = ImageReader.newInstance(800,800,ImageFormat.JPEG,1);
+        captureImageReader.setOnImageAvailableListener(captureImageAvailableListener,mBackgroundHandler);
 
 
 
@@ -247,6 +248,8 @@ public class MainActivity extends AppCompatActivity {
         initializeOpenCVDependencies();
         startBackgroundThread();
         //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+
+
     }
 
     @Override
@@ -358,6 +361,8 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "Camera closed");
     }
 
+    int orientation;
+
     public void setOrientations(Context context, int cameraId){
         CameraManager manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
         try{
@@ -366,7 +371,7 @@ public class MainActivity extends AppCompatActivity {
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraIds[cameraId]);
             int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
             int deviceOrientation = getWindowManager().getDefaultDisplay().getRotation();
-            int orientation = (sensorOrientation + deviceOrientation);
+            orientation = (sensorOrientation + deviceOrientation);
             orientation = (360 - orientation+180) % 360;
             ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateSensorOrientation(sensorOrientation);
 
@@ -378,8 +383,10 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^SENSOR ORIENTATION "+sensorOrientation);
             Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^DEVICE ORIENTATION "+deviceOrientation);
             Log.i(TAG, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ORIENTATION "+orientation);
-            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(orientation));
+//            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+//            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(orientation));
+
+
         }catch(CameraAccessException e){
             Log.i(TAG, "ERROR ACCESSING CAMERA "+e);
         }
@@ -396,8 +403,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
             cameraDevice = camera;
-            createCameraPreview();
+            //createCameraPreview();
             setOrientations(MainActivity.this,cameraIndex);
+            createCameraPreview();
         }
 
         @Override
@@ -473,8 +481,12 @@ public class MainActivity extends AppCompatActivity {
     private void captureImage() throws Exception {
 
         CaptureRequest.Builder request = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+        CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+//        request.set(CaptureRequest.JPEG_ORIENTATION,getJpegOrientation(characteristics, getWindowManager().getDefaultDisplay().getRotation()));
+        request.set(CaptureRequest.JPEG_ORIENTATION, 270);
 
         request.addTarget(captureImageReader.getSurface());
+
         if(hasFlash && flash)
             request.set(CaptureRequest.FLASH_MODE,CaptureRequest.FLASH_MODE_SINGLE);
         else{
@@ -585,6 +597,7 @@ public class MainActivity extends AppCompatActivity {
             Surface textureSurface = new Surface(texture);
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(textureSurface);
+
 
             opencvImageReader = ImageReader.newInstance(imageDimension.getWidth(), imageDimension.getHeight(), ImageFormat.YUV_420_888, IMAGE_BUFFER_SIZE);
             opencvImageReader.setOnImageAvailableListener(mOnOpenCVImageAvailableListener,  openCVHandler);
@@ -1040,4 +1053,22 @@ public class MainActivity extends AppCompatActivity {
         return cameraInfo.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF) >= 1;
     }
 
+
+    private int getJpegOrientation(CameraCharacteristics c, int deviceOrientation) {
+        if (deviceOrientation == android.view.OrientationEventListener.ORIENTATION_UNKNOWN) return 0;
+        int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
+
+        // Round device orientation to a multiple of 90
+        deviceOrientation = (deviceOrientation + 45) / 90 * 90;
+
+        // Reverse device orientation for front-facing cameras
+        boolean facingFront = c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT;
+        if (facingFront) deviceOrientation = -deviceOrientation;
+
+        // Calculate desired JPEG orientation relative to camera orientation to make
+        // the image upright relative to the device orientation
+        int jpegOrientation = (sensorOrientation + deviceOrientation + 360) % 360;
+
+        return jpegOrientation;
+    }
 }
