@@ -35,8 +35,8 @@
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout3"
-        android:layout_width="352dp"
-        android:layout_height="535dp"
+        android:layout_width="398dp"
+        android:layout_height="531dp"
         android:theme="@style/AppTheme.AppBarOverlay"
         app:layout_constraintBottom_toTopOf="@+id/fab"
         app:layout_constraintEnd_toEndOf="parent"

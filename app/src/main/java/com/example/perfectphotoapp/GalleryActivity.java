@@ -16,6 +16,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -207,6 +208,8 @@ public class GalleryActivity extends AppCompatActivity {
         if(currentIndex < totalImages){
             currentImage = images[currentIndex];
             selectedImage.setImageBitmap(BitmapFactory.decodeFile(currentImage.getAbsolutePath()));
+//            ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) selectedImage.getLayoutParams();
+//            marginParams.setMargins(0,-5000000,0,-500);
         }else{
             selectedImage.setImageResource(android.R.drawable.stat_notify_error);
             makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
