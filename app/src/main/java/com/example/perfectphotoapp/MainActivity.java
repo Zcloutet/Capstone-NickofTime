@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
     private Mat previousFrameMat;
     private ValueAnimator flashAnimator;
 
-    ImageButton btnFlash;
+    ImageButton btnFlash,btnAutoCapture;
 
     boolean autoCapture = false;
 
@@ -170,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
         ImageButton buttonRequest = findViewById(R.id.button);
         ImageButton gallery = findViewById(R.id.gallery);
         btnFlash = findViewById(R.id.flash);
+        btnAutoCapture = findViewById(R.id.autoCapture);
         btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
 
 
@@ -187,13 +188,33 @@ public class MainActivity extends AppCompatActivity {
                     btnFlash.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
                     Toast.makeText(MainActivity.this, R.string.flash_turned_on, Toast.LENGTH_SHORT).show();
                 }else{
-                    btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
+                    btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // black Tint
                     Toast.makeText(MainActivity.this, R.string.flash_turned_off, Toast.LENGTH_SHORT).show();
                 }
 
 
             }
         });
+        btnAutoCapture.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
+        Toast.makeText(MainActivity.this, "Auto Capture is disabled.", Toast.LENGTH_SHORT).show();
+
+
+
+        btnAutoCapture.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                autoCapture = ! autoCapture;
+
+                if(autoCapture == false){
+                    btnAutoCapture.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
+                    Toast.makeText(MainActivity.this, "Auto Capture is disabled.", Toast.LENGTH_SHORT).show();
+                }else{
+                    btnAutoCapture.setColorFilter(Color.argb(255, 255, 0, 0)); // black Tint
+                    Toast.makeText(MainActivity.this, "Auto Capture is enabled.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
 
         gallery.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -258,7 +279,7 @@ public class MainActivity extends AppCompatActivity {
         OpenCVLoader.initDebug();
         initializeOpenCVDependencies();
         startBackgroundThread();
-        //OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
+//        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
 
 
     }
