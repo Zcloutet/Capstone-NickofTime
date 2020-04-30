@@ -60,7 +60,7 @@ public class GalleryList extends AppCompatActivity {
             images.remove(markedPhotos.get(i));
 
         }
-        Toast.makeText(GalleryList.this, "Successfully deleted selected photos", Toast.LENGTH_SHORT).show();
+        Toast.makeText(GalleryList.this, R.string.delete_selected_photos_successful, Toast.LENGTH_SHORT).show();
         markedPhotos.clear();
         updateTitleBar();
         images.clear();
@@ -73,7 +73,7 @@ public class GalleryList extends AppCompatActivity {
     void handleExport(){
 
         if(!isWriteStoragePermissionGranted()){
-            Toast.makeText(this, "Can't export the images. Give permissions first", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.export_photos_permission_needed, Toast.LENGTH_SHORT).show();
             return;
         }
         if(images.size() == 0|| markedPhotos.size()==0){
@@ -89,7 +89,7 @@ public class GalleryList extends AppCompatActivity {
             images.remove(markedPhotos.get(i));
 
         }
-        Toast.makeText(GalleryList.this, "Successfully exported selected photos", Toast.LENGTH_SHORT).show();
+        Toast.makeText(GalleryList.this, R.string.export_photos_successful, Toast.LENGTH_SHORT).show();
         markedPhotos.clear();
         updateTitleBar();
         images.clear();

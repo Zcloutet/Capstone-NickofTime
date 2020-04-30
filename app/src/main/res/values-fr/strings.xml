@@ -4,19 +4,15 @@
     <string name="camera_open_error">Erreur en ouvrant l\'appareil photo.</string>
     <string name="camera_settings">Réglages de l\'appareil photo.</string>
     <string name="configuration_change">Change de configuration.</string>
-    <string name="delete">Supprimer</string>
     <string name="error">Erreur:</string>
     <string name="eye_detection">Détection des yeux</string>
     <string name="facial_motion_detection">"Détection de mouvement faciale "</string>
     <string name="general_motion_detection">Détection de mouvement générale</string>
     <string name="motion_detected">Mouvement détecté</string>
-    <string name="next">Prochaine</string>
-    <string name="previous">Précédente</string>
     <string name="permission_granted">Permission donnée.</string>
     <string name="permission_denied">Permission niée.</string>
     <string name="no_previous_photo">Il n\'y a pas de photo précédente.</string>
     <string name="no_photos">Il n\'y a pas de photos à afficher</string>
-    <string name="share">Partager</string>
     <string name="smile_detection">Détection des sourires</string>
     <string name="title_activity_gallery">Les photos parfaites</string>
     <string name="title_activity_gallery_list">Liste de photos</string>
@@ -27,4 +23,15 @@
     <string name="failed_to_save_image">Échec en sauvegardant la photo.</string>
     <string name="failed_to_delete">Échec en supprimant cette photo.</string>
     <string name="facial_timeout">Tolérance Temporel de la Détection</string>
+    <string name="autocapture_disabled">La capture automatique est désactivée.</string>
+    <string name="autocapture_enabled">La capture automatique est activée.</string>
+    <string name="camera_access_required">L\'accès à l\'appareil photo est obligatoire pour l\'appli.</string>
+    <string name="delete_selected_photos_successful">La suppression des photos sélectionnées a réussi.</string>
+    <string name="export_photos_permission_needed">La permission est nécessaire pour exporter les photos sélectionées.</string>
+    <string name="export_photos_successful">L\'exportation des photos sélectionées a réussi.</string>
+    <string name="info">Info</string>
+    <string name="permission_cancel">Annuler</string>
+    <string name="permission_needed">La permission est nécessaire</string>
+    <string name="permission_ok">D\'accord</string>
+    <string name="taken_on">"Prise "</string>
 </resources>
