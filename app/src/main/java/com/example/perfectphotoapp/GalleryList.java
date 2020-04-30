@@ -40,7 +40,6 @@ public class GalleryList extends AppCompatActivity {
     //selected photo array
     ArrayList<Integer> markedPhotos;
     GridAdapter adapter;
-    Toolbar toolbar;
     void updateTitleBar(){
 
         if(markedPhotos.size()==0){
@@ -151,7 +150,7 @@ public class GalleryList extends AppCompatActivity {
         });
         images = new ArrayList<File>();
         File[] f=directory.listFiles();
-        for(int i=f.length-1;i>=0;i--){
+        for(int i=0;i<f.length;i++){
             images.add(f[i]);
         }
 //                directory.listFiles();
@@ -161,6 +160,7 @@ public class GalleryList extends AppCompatActivity {
         adapter.setOnClick(listener);
         GridView grid = findViewById(R.id.grid);
         grid.setAdapter(adapter);
+        grid.smoothScrollToPosition(adapter.getCount()-1);
     }
         
 

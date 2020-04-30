@@ -60,7 +60,7 @@ public class GalleryActivity extends AppCompatActivity {
         File[] temp = directory.listFiles();
         images = new File[temp.length];
         int j=0;
-        for(int i=temp.length-1;i>=0;i--){
+        for(int i=0;i<temp.length;i++){
             images[j]= temp[i];
             j++;
         }
