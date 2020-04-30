@@ -6,7 +6,10 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -166,19 +169,6 @@ public class GalleryActivity extends AppCompatActivity {
             }
         });
 
-//        btnNext.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//               doNext();
-//            }
-//        });
-//
-//        btnPrevious.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                doPrevious();
-//            }
-//        });
         btnExport = findViewById(R.id.btnExport);
         btnExport.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -277,14 +267,22 @@ public class GalleryActivity extends AppCompatActivity {
                 Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
             }
 
-            selectedImage.setImageBitmap(BitmapFactory.decodeFile(currentImage.getAbsolutePath()));
+            Bitmap im = ImageUtils.generateCorrectBitmap(currentImage);
+            if(im==null){
+                selectedImage.setImageResource(android.R.drawable.stat_notify_error);
+                makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
+            }
+            selectedImage.setImageBitmap(im);
 //            ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) selectedImage.getLayoutParams();
 //            marginParams.setMargins(0,-5000000,0,-500);
+
         }else{
             selectedImage.setImageResource(android.R.drawable.stat_notify_error);
             makeText(this, R.string.no_photos, Toast.LENGTH_SHORT).show();
         }
+
     }
+
 
 
     private File exportFile(File src) throws IOException {

@@ -13,6 +13,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
+import android.graphics.YuvImage;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -60,6 +61,7 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -115,6 +117,8 @@ public class MainActivity extends AppCompatActivity {
     private ValueAnimator flashAnimator;
 
     ImageButton btnFlash;
+
+    boolean autoCapture = false;
 
     // cascade classifiers
     private CascadeClassifier faceCascadeClassifier;
@@ -233,8 +237,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        captureImageReader = ImageReader.newInstance(800,800,ImageFormat.JPEG,1);
-        captureImageReader.setOnImageAvailableListener(captureImageAvailableListener,mBackgroundHandler);
 
 
 
@@ -489,10 +491,10 @@ public class MainActivity extends AppCompatActivity {
     //capture image
     private void captureImage() throws Exception {
 
+
         CaptureRequest.Builder request = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
         CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-//        request.set(CaptureRequest.JPEG_ORIENTATION,getJpegOrientation(characteristics, getWindowManager().getDefaultDisplay().getRotation()));
-        request.set(CaptureRequest.JPEG_ORIENTATION, 270);
+        request.set(CaptureRequest.JPEG_ORIENTATION,getJpegOrientation(characteristics, getWindowManager().getDefaultDisplay().getRotation()));
 
         request.addTarget(captureImageReader.getSurface());
 
@@ -516,6 +518,9 @@ public class MainActivity extends AppCompatActivity {
             ByteBuffer buffer = planes[0].getBuffer();
             data = new byte[buffer.capacity()];
             buffer.get(data);
+        }else{
+            data = NV21toJPEG(YUV420toNV21(image), image.getWidth(), image.getHeight(), 100);
+
         }
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
@@ -612,6 +617,10 @@ public class MainActivity extends AppCompatActivity {
             opencvImageReader.setOnImageAvailableListener(mOnOpenCVImageAvailableListener,  openCVHandler);
             Surface openCvSurface = opencvImageReader.getSurface();
             captureRequestBuilder.addTarget(openCvSurface);
+
+            captureImageReader = ImageReader.newInstance(480,800,ImageFormat.JPEG,1);
+            captureImageReader.setOnImageAvailableListener(captureImageAvailableListener,mBackgroundHandler);
+
 
             cameraDevice.createCaptureSession(Arrays.asList(new Surface[] {textureSurface,openCvSurface,captureImageReader.getSurface()}), new CameraCaptureSession.StateCallback(){
                 @Override
@@ -719,7 +728,7 @@ public class MainActivity extends AppCompatActivity {
                         previousFrameMat = grayscaleImage;
 
                         // take a photo if conditions are met
-                        if (automaticPhotoCooldown == 0 && checkPhotoConditions(faces, generalMotion)) {
+                        if (automaticPhotoCooldown == 0 && checkPhotoConditions(faces, generalMotion) && autoCapture) {
                             automaticPhotoCooldown = AUTOMATIC_PHOTO_COOLDOWN_TIME;
                             runOnUiThread(new Runnable() { // because takePhoto() affects the UI it has to be run on the UI thread
                                 @Override
@@ -1079,5 +1088,70 @@ public class MainActivity extends AppCompatActivity {
         int jpegOrientation = (sensorOrientation + deviceOrientation + 360) % 360;
 
         return jpegOrientation;
+    }
+
+
+    private static byte[] NV21toJPEG(byte[] nv21, int width, int height, int quality) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        YuvImage yuv = new YuvImage(nv21, ImageFormat.NV21, width, height, null);
+        yuv.compressToJpeg(new android.graphics.Rect(0, 0, width, height), quality, out);
+        return out.toByteArray();
+    }
+
+    private static byte[] YUV420toNV21(Image image) {
+        android.graphics.Rect crop = image.getCropRect();
+        int format = image.getFormat();
+        int width = crop.width();
+        int height = crop.height();
+        Image.Plane[] planes = image.getPlanes();
+        byte[] data = new byte[width * height * ImageFormat.getBitsPerPixel(format) / 8];
+        byte[] rowData = new byte[planes[0].getRowStride()];
+
+        int channelOffset = 0;
+        int outputStride = 1;
+        for (int i = 0; i < planes.length; i++) {
+            switch (i) {
+                case 0:
+                    channelOffset = 0;
+                    outputStride = 1;
+                    break;
+                case 1:
+                    channelOffset = width * height + 1;
+                    outputStride = 2;
+                    break;
+                case 2:
+                    channelOffset = width * height;
+                    outputStride = 2;
+                    break;
+            }
+
+            ByteBuffer buffer = planes[i].getBuffer();
+            int rowStride = planes[i].getRowStride();
+            int pixelStride = planes[i].getPixelStride();
+
+            int shift = (i == 0) ? 0 : 1;
+            int w = width >> shift;
+            int h = height >> shift;
+            buffer.position(rowStride * (crop.top >> shift) + pixelStride * (crop.left >> shift));
+            for (int row = 0; row < h; row++) {
+                int length;
+                if (pixelStride == 1 && outputStride == 1) {
+                    length = w;
+                    buffer.get(data, channelOffset, length);
+                    channelOffset += length;
+                } else {
+                    length = (w - 1) * pixelStride + 1;
+                    buffer.get(rowData, 0, length);
+                    for (int col = 0; col < w; col++) {
+                        data[channelOffset] = rowData[col * pixelStride];
+                        channelOffset += outputStride;
+                    }
+                }
+                if (row < h - 1) {
+                    buffer.position(buffer.position() + rowStride - length);
+                }
+            }
+        }
+        return data;
     }
 }

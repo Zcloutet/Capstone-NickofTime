@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
@@ -253,9 +254,12 @@ public class GalleryList extends AppCompatActivity {
             ImageView v = parent.findViewById(R.id.thumb);
             ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
             marginParams.setMargins(0,-110,0,-110);
-
-            v.setImageBitmap(BitmapFactory.decodeFile(getItem(i).getAbsolutePath()));
-
+            Bitmap p = ImageUtils.generateCorrectBitmap(getItem(i));
+            if(p!=null)
+            v.setImageBitmap(p);
+            else{
+                v.setImageResource(android.R.drawable.stat_notify_error);
+            }
             v.setClickable(true);
             v.setOnClickListener(
                     new View.OnClickListener() {
