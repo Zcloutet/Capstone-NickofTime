@@ -181,14 +181,19 @@ public class GalleryActivity extends AppCompatActivity {
         btnDelete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                int i = currentIndex;
                 if(totalImages == 0 ||currentImage==null){
                     return;
                 }
                 if (currentImage.delete()){
                     //Toast.makeText(GalleryActivity.this, "Successfully Deleted", Toast.LENGTH_SHORT).show();
                     initialize();
+                    if(i==0)
                     currentIndex = 0;
+                    else
+                        currentIndex = i-1;
                     loadImage();
+
                 }else{
                     makeText(GalleryActivity.this, R.string.failed_to_delete, Toast.LENGTH_SHORT).show();
                 }

@@ -161,7 +161,9 @@ public class GalleryList extends AppCompatActivity {
         adapter.setOnClick(listener);
         GridView grid = findViewById(R.id.grid);
         grid.setAdapter(adapter);
-        grid.smoothScrollToPosition(adapter.getCount()-1);
+
+       grid.setSmoothScrollbarEnabled(false);
+       grid.smoothScrollToPosition(adapter.getCount()-1);
     }
         
 
