@@ -31,6 +31,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <TextView
+        android:id="@+id/nick_of_time"
+        android:layout_width="127dp"
+        android:layout_height="43dp"
+        android:fontFamily="@font/abhaya_libre_medium"
+        android:text="Nick of Time"
+        android:textSize="20dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.556"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <Switch
         android:id="@+id/smileDetection"
         android:layout_width="350dp"
