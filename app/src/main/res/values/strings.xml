@@ -14,6 +14,12 @@
     <string name="permission_granted">Permission granted.</string>
     <string name="permission_denied">Permission denied.</string>
     <string name="configuration_change">Configuration change.</string>
+    <string name="autocapture_enabled">Autocapture is enabled.</string>
+    <string name="autocapture_disabled">Autocapture is disabled.</string>
+    <string name="permission_needed">Permission needed.</string>
+    <string name="camera_access_required">Camera access is required for the app.</string>
+    <string name="permission_ok">Okay</string>
+    <string name="permission_cancel">Cancel</string>
 
     <!-- settings page strings -->
     <string name="camera_settings">Camera Settings</string>
@@ -24,15 +30,17 @@
     <string name="facial_timeout">Timed Detection Tolerance</string>
 
     <!-- gallery strings -->
-    <string name="previous">Previous</string>
-    <string name="next">Next</string>
-    <string name="share">Share</string>
-    <string name="delete">Delete</string>
+    <string name="info">Info</string>
+    <string name="taken_on">Taken on </string>
+
 
     <!-- gallery toasts -->
     <string name="failed_to_delete">Failed to delete this photo.</string>
     <string name="no_previous_photo">No previous photo.</string>
     <string name="no_photos">No photos to show.</string>
+    <string name="delete_selected_photos_successful">Successfully deleted selected photos.</string>
+    <string name="export_photos_permission_needed">Permission is needed to export the selected photos.</string>
+    <string name="export_photos_successful">Successfully exported selected photos.</string>
 
     <!-- camera overlay view strings -->
     <string name="motion_detected">Motion Detected</string>

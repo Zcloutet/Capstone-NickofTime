@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     // constants
     private static final int CAMERA_PERMISSION_CODE = 1;
     private static final int IMAGE_BUFFER_SIZE = 1;
-    private static final double FACE_MARGIN_MULTIPLIER = 0.25;
+    private static final double FACE_MARGIN_MULTIPLIER = 0.2;
     private static final String TAG = "PerfectPhoto"; // log tag
     private static final int FRAME_PROCESS_NUMBER = 3;
     private static final int MAX_FACE_AGE = 3;
@@ -196,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         btnAutoCapture.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
-        Toast.makeText(MainActivity.this, "Auto Capture is disabled.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(MainActivity.this, R.string.autocapture_disabled, Toast.LENGTH_SHORT).show();
 
 
 
@@ -207,10 +207,10 @@ public class MainActivity extends AppCompatActivity {
 
                 if(autoCapture == false){
                     btnAutoCapture.setColorFilter(Color.argb(255, 255, 255, 255)); // White Tint
-                    Toast.makeText(MainActivity.this, "Auto Capture is disabled.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.autocapture_disabled, Toast.LENGTH_SHORT).show();
                 }else{
                     btnAutoCapture.setColorFilter(Color.argb(255, 255, 0, 0)); // black Tint
-                    Toast.makeText(MainActivity.this, "Auto Capture is enabled.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, R.string.autocapture_enabled, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -456,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
             captureImage();
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(this, R.string.error + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error:" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
 
         // play shutter sound
@@ -588,15 +588,15 @@ public class MainActivity extends AppCompatActivity {
         if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)){
 
             new AlertDialog.Builder(this)
-                    .setTitle("Permission needed")
-                    .setMessage("This permission is needed for the app")
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    .setTitle(R.string.permission_needed)
+                    .setMessage(R.string.camera_open_error)
+                    .setPositiveButton(R.string.permission_ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION_CODE );
                         }
                     })
-                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    .setNegativeButton(R.string.permission_cancel, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             dialog.dismiss();

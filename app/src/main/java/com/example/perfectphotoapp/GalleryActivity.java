@@ -150,8 +150,8 @@ public class GalleryActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 AlertDialog.Builder b = new AlertDialog.Builder(GalleryActivity.this);
-                b.setTitle("Info");
-                b.setMessage("Created at: "+ timeStamp.toLocaleString());
+                b.setTitle(R.string.info);
+                b.setMessage(getResources().getString(R.string.taken_on) + timeStamp.toLocaleString());
                 b.show();
             }
         });
@@ -206,8 +206,9 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     public void goBack(){
-        Intent intent = new Intent(this, GalleryList.class);
-        startActivity(intent);
+        //Intent intent = new Intent(this, GalleryList.class);
+        //startActivity(intent);
+        this.finish();
     }
 
     private void doNext(){
@@ -326,7 +327,7 @@ public class GalleryActivity extends AppCompatActivity {
     void handleExport(){
 
         if(!isWriteStoragePermissionGranted()){
-            Toast.makeText(this, "Can't export the images. Give permissions first", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.export_photos_permission_needed, Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -336,7 +337,7 @@ public class GalleryActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        Toast.makeText(GalleryActivity.this, "Successfully exported selected photos", Toast.LENGTH_SHORT).show();
+        Toast.makeText(GalleryActivity.this, R.string.export_photos_successful, Toast.LENGTH_SHORT).show();
 
 
     }
