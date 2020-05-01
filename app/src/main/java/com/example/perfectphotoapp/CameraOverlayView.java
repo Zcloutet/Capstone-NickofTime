@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -14,6 +15,7 @@ import android.view.View;
 public class CameraOverlayView extends View {
     // constsants
     private static final String TAG = "perfectphoto overlay";
+    private static final int PAINT_OPACITY = 255;
 
     // canvas and image dimensions
     private int w;
@@ -23,7 +25,7 @@ public class CameraOverlayView extends View {
     private int sensorOrientation;
 
     // paint options
-    private int strokeWidth;
+    private int defaultStrokeWidth;
     private Paint redPaint;
     private Paint yellowPaint;
     private Paint greenPaint;
@@ -45,32 +47,36 @@ public class CameraOverlayView extends View {
         super(context, attrs);
 
         float density = getResources().getDisplayMetrics().density;
-        strokeWidth = (int) (2 * density);
+        defaultStrokeWidth = (int) (2 * density);
 
         redPaint = new Paint();
         redPaint.setColor(Color.RED);
         redPaint.setStyle(Paint.Style.STROKE);
-        redPaint.setStrokeWidth(strokeWidth);
+        redPaint.setStrokeWidth(defaultStrokeWidth);
+        redPaint.setAlpha(PAINT_OPACITY);
 
         yellowPaint = new Paint();
         yellowPaint.setColor(Color.YELLOW);
         yellowPaint.setStyle(Paint.Style.STROKE);
-        yellowPaint.setStrokeWidth(strokeWidth);
+        yellowPaint.setStrokeWidth(defaultStrokeWidth);
+        yellowPaint.setAlpha(PAINT_OPACITY);
 
         greenPaint = new Paint();
         greenPaint.setColor(Color.GREEN);
         greenPaint.setStyle(Paint.Style.STROKE);
-        greenPaint.setStrokeWidth(strokeWidth);
+        greenPaint.setStrokeWidth(defaultStrokeWidth);
+        greenPaint.setAlpha(PAINT_OPACITY);
 
         blackPaint = new Paint();
         blackPaint.setColor(Color.BLACK);
         blackPaint.setStyle(Paint.Style.STROKE);
-        blackPaint.setStrokeWidth(strokeWidth);
+        blackPaint.setStrokeWidth(defaultStrokeWidth);
+        blackPaint.setAlpha(PAINT_OPACITY);
 
         redTextPaint = new Paint();
         redTextPaint.setColor(Color.RED);
         redTextPaint.setStyle(Paint.Style.FILL);
-        redTextPaint.setTextSize(strokeWidth*10);
+        redTextPaint.setTextSize(defaultStrokeWidth*10);
     }
 
     // make sure the size of the canvas is always known
@@ -130,28 +136,36 @@ public class CameraOverlayView extends View {
                     }
                 }
 
-                Rect rect = imageToCanvas(face.getRect(), w, h, imagew, imageh, sensorOrientation);
+                RectF rect = imageToCanvas(face.getRect(), w, h, imagew, imageh, sensorOrientation);
 
-                canvas.drawRect(rect, paint);
+                float strokeWidth = rect.width()/90;
+                strokeWidth = strokeWidth < defaultStrokeWidth ? strokeWidth : defaultStrokeWidth;
+                paint.setStrokeWidth(strokeWidth);
+
+                float cornerLength = (rect.width()+rect.height())/25;
+                //canvas.drawRoundRect(rect, curveRadius,curveRadius, paint);
+                drawRectangleCorners(rect, cornerLength, paint, canvas);
 
                 int iconCount = 0;
 
                 if (smileDetection) {
-                    drawSmiley(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.smile);
+                    drawSmiley(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.smile);
                     ++iconCount;
                 }
                 if (facialMotionDetection) {
-                    drawMotion(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.noMotion);
+                    drawMotion(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.noMotion);
                     ++iconCount;
                 }
                 if (eyeDetection) {
-                    drawEye(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.eyesOpen);
+                    drawEye(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.eyesOpen);
                     ++iconCount;
                 }
                 if (facialTimeout && timeoutPercentage >= 0.5) {
-                    drawTimer(rect.centerX()+strokeWidth*12*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, timeoutPercentage);
+                    drawTimer(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, timeoutPercentage);
                     ++iconCount;
                 }
+
+                paint.setStrokeWidth(defaultStrokeWidth);
             }
         }
 
@@ -159,7 +173,7 @@ public class CameraOverlayView extends View {
             Rect bounds = new Rect();
             String motionDetectedString = getResources().getString(R.string.motion_detected);
             redTextPaint.getTextBounds(motionDetectedString, 0, motionDetectedString.length(), bounds);
-            canvas.drawText(motionDetectedString, (w-bounds.width())/2, h*0.85f, redTextPaint);
+            canvas.drawText(motionDetectedString, (w-bounds.width())/2, h*0.95f, redTextPaint);
         }
     }
 
@@ -173,10 +187,21 @@ public class CameraOverlayView extends View {
         invalidate(); // makes it redraw the canvas
     }
 
-    public void drawSmiley(int x, int y, int r, Paint paint, Canvas canvas, boolean smiling) {
+    public void drawRectangleCorners(RectF rect, float cornerLength, Paint paint, Canvas canvas) {
+        canvas.drawLine(rect.left-paint.getStrokeWidth()/2,rect.bottom,rect.left+cornerLength,rect.bottom,paint);
+        canvas.drawLine(rect.left,rect.bottom,rect.left,rect.bottom-cornerLength,paint);
+        canvas.drawLine(rect.left-paint.getStrokeWidth()/2,rect.top,rect.left+cornerLength,rect.top,paint);
+        canvas.drawLine(rect.left,rect.top,rect.left,rect.top+cornerLength,paint);
+        canvas.drawLine(rect.right+paint.getStrokeWidth()/2,rect.bottom,rect.right-cornerLength,rect.bottom,paint);
+        canvas.drawLine(rect.right,rect.bottom,rect.right,rect.bottom-cornerLength,paint);
+        canvas.drawLine(rect.right+paint.getStrokeWidth()/2,rect.top,rect.right-cornerLength,rect.top,paint);
+        canvas.drawLine(rect.right,rect.top,rect.right,rect.top+cornerLength,paint);
+    }
+
+    public void drawSmiley(float x, float y, float r, Paint paint, Canvas canvas, boolean smiling) {
         canvas.drawCircle(x, y, r, paint);
-        canvas.drawCircle(x-r/3, y-r/3, strokeWidth/2, paint);
-        canvas.drawCircle(x+r/3, y-r/3, strokeWidth/2, paint);
+        canvas.drawCircle(x-r/3, y-r/3, paint.getStrokeWidth()/2, paint);
+        canvas.drawCircle(x+r/3, y-r/3, paint.getStrokeWidth()/2, paint);
 
         if (smiling) {
             canvas.drawArc(x-r/2, y-r/2, x+r/2, y+r/2, 30, 120, false, paint);
@@ -186,7 +211,7 @@ public class CameraOverlayView extends View {
         }
     }
 
-    public void drawEye(int x, int y, int r, Paint paint, Canvas canvas, boolean eyesOpen) {
+    public void drawEye(float x, float y, float r, Paint paint, Canvas canvas, boolean eyesOpen) {
         canvas.drawArc(x-1.4f*r,y-3.73f*r,x+0.4f*r,y+0.27f*r,60,60,false,paint);
         canvas.drawArc(x-0.4f*r,y-3.73f*r,x+1.4f*r,y+0.27f*r,60,60,false,paint);
         if (eyesOpen) {
@@ -194,13 +219,13 @@ public class CameraOverlayView extends View {
             canvas.drawArc(x-0.4f*r,y-0.27f*r,x+1.4f*r,y+3.73f*r,240,60,false,paint);
 
             paint.setStyle(Paint.Style.FILL);
-            canvas.drawCircle(x-0.5f*r,y-0.04f*r,strokeWidth,paint);
-            canvas.drawCircle(x+0.5f*r,y-0.04f*r,strokeWidth,paint);
+            canvas.drawCircle(x-0.5f*r,y-0.04f*r,paint.getStrokeWidth(),paint);
+            canvas.drawCircle(x+0.5f*r,y-0.04f*r,paint.getStrokeWidth(),paint);
             paint.setStyle(Paint.Style.STROKE);
         }
     }
 
-    public void drawMotion(int x, int y, int r, Paint paint, Canvas canvas, boolean noMotion) {
+    public void drawMotion(float x, float y, float r, Paint paint, Canvas canvas, boolean noMotion) {
         if (noMotion) {
             canvas.drawCircle(x,y,r*2f/3f,paint);
         }
@@ -213,11 +238,11 @@ public class CameraOverlayView extends View {
             paint.setAlpha(95);
             canvas.drawCircle(x-r*2/5,y,r*3f/5,paint);
 
-            paint.setAlpha(255);
+            paint.setAlpha(PAINT_OPACITY);
         }
     }
 
-    public void drawTimer(int x, int y, int r, Paint paint, Canvas canvas, float percentage) {
+    public void drawTimer(float x, float y, float r, Paint paint, Canvas canvas, float percentage) {
         canvas.drawCircle(x,y,r,paint);
         canvas.drawLine(x,y,x,y-r*2/3,paint);
         if (percentage < 1) {
@@ -226,8 +251,8 @@ public class CameraOverlayView extends View {
     }
 
     // convert a rectangle on the camera image to a rectangle on the canvas
-    public static Rect imageToCanvas(Rect r, int w, int h, int imagew, int imageh, int sensorOrientation) {
-        Rect r2 = new Rect();
+    public static RectF imageToCanvas(Rect r, int w, int h, int imagew, int imageh, int sensorOrientation) {
+        RectF r2 = new RectF();
 
         switch (sensorOrientation) {
             case 0 :

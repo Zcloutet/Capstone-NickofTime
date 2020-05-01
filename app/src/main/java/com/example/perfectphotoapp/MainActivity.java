@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     // constants
     private static final int CAMERA_PERMISSION_CODE = 1;
     private static final int IMAGE_BUFFER_SIZE = 1;
-    private static final double FACE_MARGIN_MULTIPLIER = 0.25;
+    private static final double FACE_MARGIN_MULTIPLIER = 0.2;
     private static final String TAG = "PerfectPhoto"; // log tag
     private static final int FRAME_PROCESS_NUMBER = 3;
     private static final int MAX_FACE_AGE = 3;

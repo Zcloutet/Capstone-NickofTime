@@ -206,8 +206,9 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     public void goBack(){
-        Intent intent = new Intent(this, GalleryList.class);
-        startActivity(intent);
+        //Intent intent = new Intent(this, GalleryList.class);
+        //startActivity(intent);
+        this.finish();
     }
 
     private void doNext(){
