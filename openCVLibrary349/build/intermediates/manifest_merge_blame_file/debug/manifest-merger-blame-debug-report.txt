@@ -6,8 +6,8 @@
 6
 7    <uses-sdk
 8        android:minSdkVersion="23"
-8-->C:\Users\paraj\Desktop\Capstone\04-30-2020-Main\openCVLibrary349\src\main\AndroidManifest.xml
+8-->C:\GitHub\Capstone-NickofTime\openCVLibrary349\src\main\AndroidManifest.xml
 9        android:targetSdkVersion="28" />
-9-->C:\Users\paraj\Desktop\Capstone\04-30-2020-Main\openCVLibrary349\src\main\AndroidManifest.xml
+9-->C:\GitHub\Capstone-NickofTime\openCVLibrary349\src\main\AndroidManifest.xml
 10
 11</manifest>
