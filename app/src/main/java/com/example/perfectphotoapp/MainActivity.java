@@ -855,15 +855,15 @@ public class MainActivity extends AppCompatActivity {
         MatOfRect smile = new MatOfRect();
 
         // determine size of smiles
-        //double rows = faceImage.size().height;
-        //int smilesize = (int)(rows * .1);
+        double rows = faceImage.size().height;
+        int smilesize = (int)(rows * .1);
         //int maxsizesmile = (int)(rows*.3);
 
         // detect smiles
         if (smileCascadeClassifier != null) {
-            //smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.2, 20,2,
-            //new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size());
-            smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.6, 20);
+            smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.2, 20,2,
+            new org.opencv.core.Size(smilesize,smilesize),new org.opencv.core.Size());
+            //smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.3, 24);
         }
 
         // return true if detected, otherwise false
@@ -876,12 +876,12 @@ public class MainActivity extends AppCompatActivity {
 
         // determine size of eyes
         double rows = faceImage.size().height;
-        int eyesize = (int)(rows * 0.01);
+        int eyesize = (int)(rows * 0.02);
         //int maxsizeeye = (int)(rows*.15);
 
         // detect eyes
         if (eyeCascadeClassifier != null) {
-            eyeCascadeClassifier.detectMultiScale(faceImage, eyes, 1.1, 8,2,
+            eyeCascadeClassifier.detectMultiScale(faceImage, eyes, 1.05, 11,2,
                     new org.opencv.core.Size(eyesize,eyesize));
             //eyeCascadeClassifier.detectMultiScale(facesArray[i].croppedimg, eyes, 1.1,8);
         }
