@@ -138,6 +138,9 @@ public class CameraOverlayView extends View {
 
                 RectF rect = imageToCanvas(face.getRect(), w, h, imagew, imageh, sensorOrientation);
 
+                Log.i("PHONETEST", String.format("IMAGE: top %d left %d bottom %d right %d",face.top,face.left,face.bottom,face.right));
+                Log.i("PHONETEST", String.format("OVERLAY: top %d left %d bottom %d right %d",rect.top,rect.left,rect.bottom,rect.right));
+
                 float strokeWidth = rect.width()/90;
                 strokeWidth = strokeWidth < defaultStrokeWidth ? strokeWidth : defaultStrokeWidth;
                 paint.setStrokeWidth(strokeWidth);
