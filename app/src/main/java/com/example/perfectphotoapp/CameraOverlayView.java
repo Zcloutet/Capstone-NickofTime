@@ -77,14 +77,19 @@ public class CameraOverlayView extends View {
         redTextPaint.setColor(Color.RED);
         redTextPaint.setStyle(Paint.Style.FILL);
         redTextPaint.setTextSize(defaultStrokeWidth*10);
+
+        w = this.getWidth();
+        h = this.getHeight();
     }
 
     // make sure the size of the canvas is always known
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        this.w = w;
-        this.h = h;
-        super.onSizeChanged(w, h, oldw, oldh);
+        if (w != 0 && h != 0) {
+            this.w = w;
+            this.h = h;
+            super.onSizeChanged(w, h, oldw, oldh);
+        }
     }
 
     // draw the faces onto the canvas
@@ -139,7 +144,7 @@ public class CameraOverlayView extends View {
                 RectF rect = imageToCanvas(face.getRect(), w, h, imagew, imageh, sensorOrientation);
 
                 Log.i("PHONETEST", String.format("IMAGE: top %d left %d bottom %d right %d",face.top,face.left,face.bottom,face.right));
-                Log.i("PHONETEST", String.format("OVERLAY: top %d left %d bottom %d right %d",rect.top,rect.left,rect.bottom,rect.right));
+                Log.i("PHONETEST", String.format("OVERLAY: top %f left %f bottom %f right %f",rect.top,rect.left,rect.bottom,rect.right));
 
                 float strokeWidth = rect.width()/90;
                 strokeWidth = strokeWidth < defaultStrokeWidth ? strokeWidth : defaultStrokeWidth;
