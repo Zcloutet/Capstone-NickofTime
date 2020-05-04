@@ -3,6 +3,7 @@ package com.example.perfectphotoapp;
 
 
 import android.graphics.Rect;
+import android.graphics.RectF;
 
 
 import org.junit.Test;
@@ -15,7 +16,7 @@ public class CameraOverlayViewTest {
     Rect r3 = new Rect(200,1,400,3);
     Rect r4 = new Rect(20,10,40,30);
 
-    public boolean rectEquals(Rect r1, Rect r2) {
+    public boolean rectEquals(Rect r1, RectF r2) {
         return (r1.left == r2.left && r1.top == r2.top && r1.right == r2.right && r1.bottom == r2.bottom);
     }
 
