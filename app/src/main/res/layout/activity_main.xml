@@ -131,14 +131,18 @@
 
     <ImageButton
         android:id="@+id/gallery"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:layout_marginBottom="48dp"
+        android:background="#00FFFFFF"
+        android:cropToPadding="true"
+        android:elevation="1dp"
+        android:scaleType="centerInside"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/button"
         app:layout_constraintHorizontal_bias="0.532"
         app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@android:drawable/ic_menu_mapmode" />
+        tools:src="@android:drawable/ic_menu_mapmode" />
 
     <ImageButton
         android:id="@+id/autoCapture"

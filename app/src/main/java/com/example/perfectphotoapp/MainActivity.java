@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -116,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
     private Mat previousFrameMat;
     private ValueAnimator flashAnimator;
 
-    ImageButton btnFlash,btnAutoCapture;
+    ImageButton btnFlash,btnAutoCapture,btnGallery;
 
     boolean autoCapture = false;
 
@@ -168,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
 
         // take photo button
         ImageButton buttonRequest = findViewById(R.id.button);
-        ImageButton gallery = findViewById(R.id.gallery);
+        btnGallery = findViewById(R.id.gallery);
         btnFlash = findViewById(R.id.flash);
         btnAutoCapture = findViewById(R.id.autoCapture);
         btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
@@ -216,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        gallery.setOnClickListener(new View.OnClickListener() {
+        btnGallery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
@@ -280,8 +281,8 @@ public class MainActivity extends AppCompatActivity {
         initializeOpenCVDependencies();
         startBackgroundThread();
 //        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
-
-
+        //set gallery button image on resume
+        setGalleryButtonImage();
     }
 
     @Override
@@ -578,6 +579,8 @@ public class MainActivity extends AppCompatActivity {
             }
             image.close();
 //            imageReader.close();
+            //call on capture complete
+            onCaptureComplete();
         }
     };
 
@@ -1181,5 +1184,45 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return data;
+    }
+
+
+    //functions for setting image of gallerybutton according to recent image
+
+    private void onCaptureComplete(){
+        //since this function is called on other threads, we run code here on ui thread
+        Handler ui = new Handler(getMainLooper());
+        ui.post(new Runnable() {
+            @Override
+            public void run() {
+                setGalleryButtonImage();
+            }
+        });
+    }
+
+    private void setGalleryButtonImage(){
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        File directory = cw.getDir("images", Context.MODE_PRIVATE);
+        if(!directory.exists() || !directory.isDirectory()) {
+            setDefaultGalleryButtonImage();
+            return;
+        }
+        File[] f= directory.listFiles();
+        if(f.length!=0){
+
+            Bitmap bitmap = ImageUtils.generateCorrectBitmap(f[f.length-1]);
+            btnGallery.setImageResource(0);
+            btnGallery.setImageBitmap(Bitmap.createScaledBitmap(bitmap,100,100,false));
+            btnGallery.setScaleType(ImageView.ScaleType.FIT_XY);
+            btnGallery.invalidate();
+            return;
+        }else{
+            setDefaultGalleryButtonImage();
+        }
+    }
+
+    private void setDefaultGalleryButtonImage(){
+        btnGallery.setImageResource(android.R.drawable.ic_menu_mapmode);
+        btnGallery.invalidate();
     }
 }
