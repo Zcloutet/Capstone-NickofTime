@@ -262,6 +262,9 @@ public class CameraOverlayView extends View {
     public static RectF imageToCanvas(Rect r, int w, int h, int imagew, int imageh, int sensorOrientation) {
         RectF r2 = new RectF();
 
+        Log.i("PHONETEST", String.format("SENSOR ORIENTATION: %d",sensorOrientation));
+        Log.i("PHONETEST", String.format("WIDTH: %d, HEIGHT: %d", w, h));
+
         switch (sensorOrientation) {
             case 0 :
                 r2.left = r.left*w/imagew;
