@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -28,6 +29,7 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaActionSound;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -68,6 +70,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Locale;
 
 import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
 import static com.example.perfectphotoapp.SettingsActivity.FACIALMOTIONSWITCH;
@@ -115,10 +118,13 @@ public class MainActivity extends AppCompatActivity {
     private Face[] faces = {};
     private Mat previousFrameMat;
     private ValueAnimator flashAnimator;
+    private int screenOrientation;
 
     ImageButton btnFlash,btnAutoCapture;
 
     boolean autoCapture = false;
+
+    boolean samsung = false;
 
     // cascade classifiers
     private CascadeClassifier faceCascadeClassifier;
@@ -259,9 +265,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-
-
         textureView.setOnTouchListener(onTouchListener);
+
+        samsung = Build.MANUFACTURER.toLowerCase(Locale.ENGLISH).equals("samsung") ? true : false;
     }
 
     @Override
@@ -333,6 +339,12 @@ public class MainActivity extends AppCompatActivity {
         ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, generalMotionDetection, facialMotionDetection, facialTimeout);
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration config) {
+        super.onConfigurationChanged(config);
+        screenOrientation = config.orientation;
+        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateScreenOrientation(screenOrientation);
+    }
 
     // CAMERA HANDLING
 
@@ -727,6 +739,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     image = reader.acquireLatestImage();
                     if (image != null) {
+
                         // convert image to grayscale mat
                         Mat grayscaleImage = convertFrame(image);
 
@@ -953,6 +966,10 @@ public class MainActivity extends AppCompatActivity {
 
         Mat grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
         Imgproc.cvtColor(mRGB, grayscaleImage, Imgproc.COLOR_RGB2GRAY);
+
+        if (samsung && screenOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            Core.rotate(grayscaleImage, grayscaleImage, Core.ROTATE_90_CLOCKWISE);
+        }
 
         return grayscaleImage;
     }

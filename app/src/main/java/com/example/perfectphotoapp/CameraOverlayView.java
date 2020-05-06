@@ -1,16 +1,21 @@
 package com.example.perfectphotoapp;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Config;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
+
+import java.util.Locale;
 
 public class CameraOverlayView extends View {
     // constsants
@@ -23,6 +28,8 @@ public class CameraOverlayView extends View {
     private int imagew;
     private int imageh;
     private int sensorOrientation;
+    static private int screenOrientation;
+    static boolean samsung = false;
 
     // paint options
     private int defaultStrokeWidth;
@@ -80,6 +87,10 @@ public class CameraOverlayView extends View {
 
         w = this.getWidth();
         h = this.getHeight();
+
+        samsung = Build.MANUFACTURER.toLowerCase(Locale.ENGLISH).equals("samsung") ? true : false;
+
+        Log.i("PHONETEST", "MANUFACTURER: " + Build.MANUFACTURER + ", SAMSUNG: " + (samsung ? "true" : "false"));
     }
 
     // make sure the size of the canvas is always known
@@ -145,6 +156,8 @@ public class CameraOverlayView extends View {
 
                 Log.i("PHONETEST", String.format("IMAGE: top %d left %d bottom %d right %d",face.top,face.left,face.bottom,face.right));
                 Log.i("PHONETEST", String.format("OVERLAY: top %f left %f bottom %f right %f",rect.top,rect.left,rect.bottom,rect.right));
+                Log.i("PHONETEST", String.format("SENSOR ORIENTATION: %d",sensorOrientation));
+                Log.i("PHONETEST", String.format("WIDTH: %d, HEIGHT: %d", w, h));
 
                 float strokeWidth = rect.width()/90;
                 strokeWidth = strokeWidth < defaultStrokeWidth ? strokeWidth : defaultStrokeWidth;
@@ -261,24 +274,38 @@ public class CameraOverlayView extends View {
     // convert a rectangle on the camera image to a rectangle on the canvas
     public static RectF imageToCanvas(Rect r, int w, int h, int imagew, int imageh, int sensorOrientation) {
         RectF r2 = new RectF();
-
-        Log.i("PHONETEST", String.format("SENSOR ORIENTATION: %d",sensorOrientation));
-        Log.i("PHONETEST", String.format("WIDTH: %d, HEIGHT: %d", w, h));
-
-        switch (sensorOrientation) {
-            case 0 :
-                r2.left = r.left*w/imagew;
-                r2.top = r.top*h/imageh;
-                r2.right = r.right*w/imagew;
-                r2.bottom = r.bottom*h/imageh;
-                break;
-            case 90 :
-                r2.left = r.top*w/imageh;
-                r2.top = r.left*h/imagew;
-                r2.right = r.bottom*w/imageh;
-                r2.bottom = r.right*h/imagew;
-                break;
-        } // 180 and 270 degree rotation not handled
+        if (!samsung) {
+            switch (sensorOrientation) {
+                case 0:
+                    r2.left = r.left * w / imagew;
+                    r2.top = r.top * h / imageh;
+                    r2.right = r.right * w / imagew;
+                    r2.bottom = r.bottom * h / imageh;
+                    break;
+                case 90:
+                    r2.left = r.top * w / imageh;
+                    r2.top = r.left * h / imagew;
+                    r2.right = r.bottom * w / imageh;
+                    r2.bottom = r.right * h / imagew;
+                    break;
+            } // 180 and 270 degree rotation not handled
+        }
+        else {
+            switch (screenOrientation) {
+                case Configuration.ORIENTATION_PORTRAIT:
+                    r2.left = r.left * w / imagew;
+                    r2.top = r.top * h / imageh;
+                    r2.right = r.right * w / imagew;
+                    r2.bottom = r.bottom * h / imageh;
+                    break;
+                case Configuration.ORIENTATION_LANDSCAPE:
+                    r2.left = r.top * w / imageh;
+                    r2.top = r.left * h / imagew;
+                    r2.right = r.bottom * w / imageh;
+                    r2.bottom = r.right * h / imagew;
+                    break;
+            }
+        }
 
         return r2;
 
@@ -305,6 +332,10 @@ public class CameraOverlayView extends View {
 
     public void updateSensorOrientation(int sensorOrientation) {
         this.sensorOrientation = sensorOrientation;
+    }
+
+    public void updateScreenOrientation(int screenOrientation) {
+        this.screenOrientation = screenOrientation;
     }
 
     public void updatePreferences(boolean smileDetection, boolean faceDetection, boolean generalMotionDetection, boolean facialMotionDetection, boolean facialTimeout) {
