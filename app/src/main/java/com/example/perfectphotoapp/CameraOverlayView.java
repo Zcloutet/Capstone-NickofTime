@@ -11,9 +11,11 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Config;
 import android.util.Log;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
+import android.view.WindowManager;
 
 import java.util.Locale;
 
@@ -30,6 +32,7 @@ public class CameraOverlayView extends View {
     private int sensorOrientation;
     static private int screenOrientation;
     static boolean samsung = false;
+    private static Display display;
 
     // paint options
     private int defaultStrokeWidth;
@@ -52,6 +55,8 @@ public class CameraOverlayView extends View {
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
+
+        display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 
         float density = getResources().getDisplayMetrics().density;
         defaultStrokeWidth = (int) (2 * density);
@@ -291,19 +296,31 @@ public class CameraOverlayView extends View {
             } // 180 and 270 degree rotation not handled
         }
         else {
-            switch (screenOrientation) {
-                case Configuration.ORIENTATION_PORTRAIT:
+            int rotation = display.getRotation();
+            switch (rotation) {
+                case Surface.ROTATION_0:
+                    Log.i("PHONETEST","ROTATION: 0");
                     r2.left = r.left * w / imagew;
                     r2.top = r.top * h / imageh;
                     r2.right = r.right * w / imagew;
                     r2.bottom = r.bottom * h / imageh;
                     break;
-                case Configuration.ORIENTATION_LANDSCAPE:
+                case Surface.ROTATION_90:
+                    Log.i("PHONETEST", "ROTATION: 90");
                     r2.left = r.top * w / imageh;
                     r2.top = r.left * h / imagew;
                     r2.right = r.bottom * w / imageh;
                     r2.bottom = r.right * h / imagew;
                     break;
+                case Surface.ROTATION_270:
+                    Log.i("PHONETEST", "ROTATION: 270");
+                    r2.left = r.top * w / imageh;
+                    r2.top = r.left * h / imagew;
+                    r2.right = r.bottom * w / imageh;
+                    r2.bottom = r.right * h / imagew;
+                    break;
+                default:
+                    Log.i("PHONETEST", "ROTATION: unknown");
             }
         }
 
