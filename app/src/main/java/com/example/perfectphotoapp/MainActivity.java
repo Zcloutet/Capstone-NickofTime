@@ -865,7 +865,7 @@ public class MainActivity extends AppCompatActivity {
         // detect smiles
         if (smileCascadeClassifier != null) {
             if(faceImage.size().height > 200) {
-                smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.6, 20, 2,
+                smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.5, 23, 2,
                         new org.opencv.core.Size(smilesize, smilesize), new org.opencv.core.Size());
 
             }
