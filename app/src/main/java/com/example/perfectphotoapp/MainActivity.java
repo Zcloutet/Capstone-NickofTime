@@ -774,7 +774,7 @@ public class MainActivity extends AppCompatActivity {
     private void initializeOpenCVDependencies() {
         faceCascadeClassifier = openCascadeClassifier(R.raw.lbpcascade_frontalface, "lbpcascade_frontalface.xml");
         smileCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_smile, "haarcascade_smile.xml");
-        eyeCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_eye, "haarcascade_eye.xml");
+        eyeCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_eye, "haarcascade_eye_tree_eyeglasses.xml");
 
         // And we are ready to go
         //openCvCameraView.enableView();
@@ -870,7 +870,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         else{
-                smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.2, 30, 2,
+                smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.25, 30, 2,
                         new org.opencv.core.Size(smilesize, smilesize), new org.opencv.core.Size());
                 //smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.2, 20);
             }
