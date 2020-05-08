@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -77,7 +78,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Locale;
 
 import static com.example.perfectphotoapp.SettingsActivity.EYESWITCH;
 import static com.example.perfectphotoapp.SettingsActivity.FACIALMOTIONSWITCH;
@@ -137,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
     private final float[] orientationAngles = new float[3];
 
 
-    ImageButton btnFlash,btnAutoCapture;
+    ImageButton btnFlash,btnAutoCapture,btnGallery;
 
     boolean autoCapture = false;
 
@@ -200,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
 
         // take photo button
         ImageButton buttonRequest = findViewById(R.id.button);
-        ImageButton gallery = findViewById(R.id.gallery);
+        btnGallery = findViewById(R.id.gallery);
         btnFlash = findViewById(R.id.flash);
         btnAutoCapture = findViewById(R.id.autoCapture);
         btnFlash.setColorFilter(Color.argb(255, 0, 0, 0)); // White Tint
@@ -248,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        gallery.setOnClickListener(new View.OnClickListener() {
+        btnGallery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
@@ -310,8 +310,8 @@ public class MainActivity extends AppCompatActivity {
         initializeOpenCVDependencies();
         startBackgroundThread();
 //        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_4_0, this, mLoaderCallback);
-
-
+        //set gallery button image on resume
+        setGalleryButtonImage();
     }
 
     @Override
@@ -607,6 +607,8 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, R.string.unknown_error_occurred, Toast.LENGTH_SHORT).show();
             }
 //            imageReader.close();
+            //call on capture complete
+            onCaptureComplete();
         }
     };
 
@@ -814,7 +816,7 @@ public class MainActivity extends AppCompatActivity {
     private void initializeOpenCVDependencies() {
         faceCascadeClassifier = openCascadeClassifier(R.raw.lbpcascade_frontalface, "lbpcascade_frontalface.xml");
         smileCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_smile, "haarcascade_smile.xml");
-        eyeCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_eye, "haarcascade_eye.xml");
+        eyeCascadeClassifier = openCascadeClassifier(R.raw.haarcascade_eye, "haarcascade_eye_tree_eyeglasses.xml");
 
         // And we are ready to go
         //openCvCameraView.enableView();
@@ -905,12 +907,12 @@ public class MainActivity extends AppCompatActivity {
         // detect smiles
         if (smileCascadeClassifier != null) {
             if(faceImage.size().height > 200) {
-                smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.6, 20, 2,
+                smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.5, 23, 2,
                         new org.opencv.core.Size(smilesize, smilesize), new org.opencv.core.Size());
 
             }
         else{
-                smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.2, 30, 2,
+                smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.25, 30, 2,
                         new org.opencv.core.Size(smilesize, smilesize), new org.opencv.core.Size());
                 //smileCascadeClassifier.detectMultiScale(faceImage, smile, 1.2, 20);
             }
@@ -1277,4 +1279,44 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+
+    //functions for setting image of gallerybutton according to recent image
+
+    private void onCaptureComplete(){
+        //since this function is called on other threads, we run code here on ui thread
+        Handler ui = new Handler(getMainLooper());
+        ui.post(new Runnable() {
+            @Override
+            public void run() {
+                setGalleryButtonImage();
+            }
+        });
+    }
+
+    private void setGalleryButtonImage(){
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        File directory = cw.getDir("images", Context.MODE_PRIVATE);
+        if(!directory.exists() || !directory.isDirectory()) {
+            setDefaultGalleryButtonImage();
+            return;
+        }
+        File[] f= directory.listFiles();
+        if(f.length!=0){
+
+            Bitmap bitmap = ImageUtils.generateCorrectBitmap(f[f.length-1]);
+            btnGallery.setImageResource(0);
+            btnGallery.setImageBitmap(Bitmap.createScaledBitmap(bitmap,100,100,false));
+            btnGallery.setScaleType(ImageView.ScaleType.FIT_XY);
+            btnGallery.invalidate();
+            return;
+        }else{
+            setDefaultGalleryButtonImage();
+        }
+    }
+
+    private void setDefaultGalleryButtonImage(){
+        btnGallery.setImageResource(android.R.drawable.ic_menu_mapmode);
+        btnGallery.invalidate();
+    }
 }

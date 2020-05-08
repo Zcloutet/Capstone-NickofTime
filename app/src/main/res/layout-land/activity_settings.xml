@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F8DFDEDA"
+    tools:context=".SettingsActivity">
+
+
+    <ImageButton
+        android:id="@+id/go_back"
+        android:layout_width="55dp"
+        android:layout_height="55dp"
+        android:layout_marginStart="16dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:scaleType="fitXY"
+        android:src="@drawable/ic_keyboard_arrow_left_black_24dp"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:layout_editor_absoluteY="40dp" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:fontFamily="@font/abhaya_libre_medium"
+        android:text="@string/camera_settings"
+        android:textSize="32dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/nick_of_time"
+        android:layout_width="127dp"
+        android:layout_height="43dp"
+        android:fontFamily="@font/abhaya_libre_medium"
+        android:text="Nick of Time"
+        android:textSize="20dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Switch
+        android:id="@+id/smileDetection"
+        android:layout_width="621dp"
+        android:layout_height="38dp"
+        android:layout_marginTop="16dp"
+        android:text="@string/smile_detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
+
+    <Switch
+        android:id="@+id/eyeDetection"
+        android:layout_width="624dp"
+        android:layout_height="34dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/eye_detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/smileDetection" />
+
+    <Switch
+        android:id="@+id/facialMotionDetection"
+        android:layout_width="623dp"
+        android:layout_height="39dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/facial_motion_detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/eyeDetection" />
+
+    <Switch
+        android:id="@+id/generalMotionDetection"
+        android:layout_width="619dp"
+        android:layout_height="35dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/general_motion_detection"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/facialMotionDetection" />
+
+    <Switch
+        android:id="@+id/facialTimeout"
+        android:layout_width="627dp"
+        android:layout_height="42dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/facial_timeout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/generalMotionDetection" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
