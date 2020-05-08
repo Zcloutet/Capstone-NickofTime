@@ -15,6 +15,10 @@ import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -33,13 +37,16 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -88,13 +95,16 @@ import static com.example.perfectphotoapp.SettingsActivity.SMILESWITCH;
 public class MainActivity extends AppCompatActivity {
     // constants
     private static final int CAMERA_PERMISSION_CODE = 1;
-    private static final int IMAGE_BUFFER_SIZE = 1;
+    private static final int IMAGE_BUFFER_SIZE = 10;
     private static final double FACE_MARGIN_MULTIPLIER = 0.2;
     private static final String TAG = "PerfectPhoto"; // log tag
     private static final int FRAME_PROCESS_NUMBER = 3;
-    private static final int MAX_FACE_AGE = 3;
+    private static final int MAX_FACE_AGE = 4;
     public static final int FACE_TIMEOUT_AGE = 30;
     private static final int AUTOMATIC_PHOTO_COOLDOWN_TIME = 30;
+    public static final int ROTATION_PORTRAIT = 0;
+    public static final int ROTATION_LANDSCAPE_CLOCKWISE = 1;
+    public static final int ROTATION_LANDSCAPE_COUNTERCLOCKWISE = -1;
 
     CameraManager manager;
     HandlerThread mBackgroundThread;
@@ -120,11 +130,16 @@ public class MainActivity extends AppCompatActivity {
     private ValueAnimator flashAnimator;
     private int screenOrientation;
 
+    private SensorManager sensorManager;
+    private final float[] accelerometerReading = new float[3];
+    private final float[] magnetometerReading = new float[3];
+    private final float[] rotationMatrix = new float[9];
+    private final float[] orientationAngles = new float[3];
+
+
     ImageButton btnFlash,btnAutoCapture;
 
     boolean autoCapture = false;
-
-    boolean samsung = false;
 
     // cascade classifiers
     private CascadeClassifier faceCascadeClassifier;
@@ -150,7 +165,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     // APP HANDLING
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -166,6 +180,18 @@ public class MainActivity extends AppCompatActivity {
 //        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         findViewById(R.id.imageViewFlash).setVisibility(View.GONE); // screen starts white if this is not here
         loadFlashAnimator();
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        if (accelerometer != null) {
+            sensorManager.registerListener(sensorEventListener, accelerometer,
+                    SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_UI);
+        }
+        Sensor magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        if (magneticField != null) {
+            sensorManager.registerListener(sensorEventListener, magneticField,
+                    SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_UI);
+        }
 
         // textureView
         textureView = (TextureView) findViewById(R.id.texture);
@@ -266,8 +292,6 @@ public class MainActivity extends AppCompatActivity {
 
 
         textureView.setOnTouchListener(onTouchListener);
-
-        samsung = Build.MANUFACTURER.toLowerCase(Locale.ENGLISH).equals("samsung") ? true : false;
     }
 
     @Override
@@ -337,13 +361,6 @@ public class MainActivity extends AppCompatActivity {
         facialMotionDetection = sharedPreferences.getBoolean(FACIALMOTIONSWITCH, true);
         facialTimeout = sharedPreferences.getBoolean(FACIALTIMEOUTSWITCH, true);
         ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updatePreferences(smileDetection, eyeDetection, generalMotionDetection, facialMotionDetection, facialTimeout);
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration config) {
-        super.onConfigurationChanged(config);
-        screenOrientation = config.orientation;
-        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateScreenOrientation(screenOrientation);
     }
 
     // CAMERA HANDLING
@@ -585,10 +602,10 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, R.string.failed_to_save_image, Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
                 }
+                image.close();
             }else{
                 Toast.makeText(MainActivity.this, R.string.unknown_error_occurred, Toast.LENGTH_SHORT).show();
             }
-            image.close();
 //            imageReader.close();
         }
     };
@@ -601,7 +618,7 @@ public class MainActivity extends AppCompatActivity {
 
             new AlertDialog.Builder(this)
                     .setTitle(R.string.permission_needed)
-                    .setMessage(R.string.camera_open_error)
+                    .setMessage(R.string.camera_access_required)
                     .setPositiveButton(R.string.permission_ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -732,7 +749,8 @@ public class MainActivity extends AppCompatActivity {
         public void onImageAvailable(ImageReader reader) {
             if (automaticPhotoCooldown > 0) --automaticPhotoCooldown;
             if (++frameCount % FRAME_PROCESS_NUMBER != 0) {
-                reader.acquireLatestImage().close();
+                Image image = reader.acquireLatestImage();
+                if (image != null) image.close();
             }
             else {
                 Image image = null;
@@ -742,6 +760,9 @@ public class MainActivity extends AppCompatActivity {
 
                         // convert image to grayscale mat
                         Mat grayscaleImage = convertFrame(image);
+
+                        int rotationDirection = getRotationDirection();
+                        grayscaleImage = rotateFrame(grayscaleImage, rotationDirection);
 
                         // go through detection of new faces
                         Face[] newFaces = Cascadeframe(grayscaleImage);
@@ -756,7 +777,7 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         // update the overlay to display detected features
-                        ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, image.getWidth(), image.getHeight(), generalMotion);
+                        updateCameraOverlayView(faces, image.getWidth(), image.getHeight(), generalMotion, rotationDirection);
 
                         // set this frame as the previous frame
                         previousFrameMat = grayscaleImage;
@@ -771,15 +792,24 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             });
                         }
+
+                        image.close();
                     }
                 } catch (Exception e) {
                     Log.w(TAG, e.getMessage());
-                } finally {
-                    image.close();
                 }
             }
         }
     };
+
+    private void updateCameraOverlayView(final Face[] faces, final int width, final int height, final boolean generalMotion, final int rotationDirection) {
+        runOnUiThread(new Runnable() { // because takePhoto() affects the UI it has to be run on the UI thread
+            @Override
+            public void run() {
+                ((CameraOverlayView) findViewById(R.id.cameraOverlayView)).updateFaces(faces, width, height, generalMotion, rotationDirection);
+            }
+        });
+    }
 
     private void initializeOpenCVDependencies() {
         faceCascadeClassifier = openCascadeClassifier(R.raw.lbpcascade_frontalface, "lbpcascade_frontalface.xml");
@@ -913,6 +943,8 @@ public class MainActivity extends AppCompatActivity {
 
     // detect motion
     public boolean motionDetect(Mat prevFrame, Mat currentFrame) {
+        if (prevFrame.cols() != currentFrame.cols() || prevFrame.rows() != currentFrame.rows()) return true;
+
         // calculate difference between frames
         Mat diffFrame = new Mat();
         Core.absdiff(prevFrame, currentFrame, diffFrame);
@@ -926,6 +958,25 @@ public class MainActivity extends AppCompatActivity {
 
         // if there was enough change, return true, otherwise false
         return (mean.val[0] > 0.05);
+    }
+
+    // rotation
+    public int getRotationDirection() {
+        SensorManager.getRotationMatrix(rotationMatrix, null,
+                accelerometerReading, magnetometerReading);
+        SensorManager.getOrientation(rotationMatrix, orientationAngles);
+        if (orientationAngles[1] < -1) {
+            Log.i("PHONETEST", "PORTRAIT");
+            return ROTATION_PORTRAIT;
+        }
+        else if (orientationAngles[2] > 0) {
+            Log.i("PHONETEST", "LANDSCAPE_CLOCKWISE");
+            return ROTATION_LANDSCAPE_CLOCKWISE;
+        }
+        else {
+            Log.i("PHONETEST", "LANDSCAPE_COUNTERCLOCKWISE");
+            return ROTATION_LANDSCAPE_COUNTERCLOCKWISE;
+        }
     }
 
     /*
@@ -967,11 +1018,22 @@ public class MainActivity extends AppCompatActivity {
         Mat grayscaleImage = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
         Imgproc.cvtColor(mRGB, grayscaleImage, Imgproc.COLOR_RGB2GRAY);
 
-        if (samsung && screenOrientation == Configuration.ORIENTATION_PORTRAIT) {
-            Core.rotate(grayscaleImage, grayscaleImage, Core.ROTATE_90_CLOCKWISE);
-        }
-
         return grayscaleImage;
+    }
+
+    public Mat rotateFrame(Mat frame, int rotationDirection) {
+        switch (rotationDirection) {
+            case ROTATION_LANDSCAPE_COUNTERCLOCKWISE:
+                return frame;
+            case ROTATION_PORTRAIT:
+                Core.transpose(frame, frame);
+                Core.flip(frame, frame, 0);
+                return frame;
+            case ROTATION_LANDSCAPE_CLOCKWISE:
+                Core.rotate(frame, frame, Core.ROTATE_180);
+                return frame;
+        }
+        return frame;
     }
 
     public Mat getYUV2Mat(Image image,byte[] data) {
@@ -1199,4 +1261,20 @@ public class MainActivity extends AppCompatActivity {
         }
         return data;
     }
+
+    private SensorEventListener sensorEventListener = new SensorEventListener() {
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            // don't care
+        }
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.length);
+            } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+                System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
+            }
+        }
+    };
 }

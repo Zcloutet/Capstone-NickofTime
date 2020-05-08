@@ -30,9 +30,7 @@ public class CameraOverlayView extends View {
     private int imagew;
     private int imageh;
     private int sensorOrientation;
-    static private int screenOrientation;
-    static boolean samsung = false;
-    private static Display display;
+    private static int rotationDirection;
 
     // paint options
     private int defaultStrokeWidth;
@@ -55,8 +53,6 @@ public class CameraOverlayView extends View {
 
     public CameraOverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
-
-        display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
 
         float density = getResources().getDisplayMetrics().density;
         defaultStrokeWidth = (int) (2 * density);
@@ -92,10 +88,6 @@ public class CameraOverlayView extends View {
 
         w = this.getWidth();
         h = this.getHeight();
-
-        samsung = Build.MANUFACTURER.toLowerCase(Locale.ENGLISH).equals("samsung") ? true : false;
-
-        Log.i("PHONETEST", "MANUFACTURER: " + Build.MANUFACTURER + ", SAMSUNG: " + (samsung ? "true" : "false"));
     }
 
     // make sure the size of the canvas is always known
@@ -174,22 +166,63 @@ public class CameraOverlayView extends View {
 
                 int iconCount = 0;
 
-                if (smileDetection) {
-                    drawSmiley(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.smile);
-                    ++iconCount;
+                switch (rotationDirection) {
+                    case MainActivity.ROTATION_PORTRAIT:
+                        if (smileDetection) {
+                            drawSmiley(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.smile);
+                            ++iconCount;
+                        }
+                        if (facialMotionDetection) {
+                            drawMotion(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.noMotion);
+                            ++iconCount;
+                        }
+                        if (eyeDetection) {
+                            drawEye(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.eyesOpen);
+                            ++iconCount;
+                        }
+                        if (facialTimeout && timeoutPercentage >= 0.5) {
+                            drawTimer(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, timeoutPercentage);
+                            ++iconCount;
+                        }
+                        break;
+                    case MainActivity.ROTATION_LANDSCAPE_CLOCKWISE:
+                        if (smileDetection) {
+                            drawSmiley(rect.right+strokeWidth*12,rect.centerY()-strokeWidth*10*(iconCount*2-count+1), strokeWidth*8, paint, canvas, face.smile);
+                            ++iconCount;
+                        }
+                        if (facialMotionDetection) {
+                            drawMotion(rect.right+strokeWidth*12,rect.centerY()-strokeWidth*10*(iconCount*2-count+1), strokeWidth*8, paint, canvas, face.noMotion);
+                            ++iconCount;
+                        }
+                        if (eyeDetection) {
+                            drawEye(rect.right+strokeWidth*12,rect.centerY()-strokeWidth*10*(iconCount*2-count+1), strokeWidth*8, paint, canvas, face.eyesOpen);
+                            ++iconCount;
+                        }
+                        if (facialTimeout && timeoutPercentage >= 0.5) {
+                            drawTimer(rect.right+strokeWidth*12,rect.centerY()-strokeWidth*10*(iconCount*2-count+1), strokeWidth*8, paint, canvas, timeoutPercentage);
+                            ++iconCount;
+                        }
+                        break;
+                    case MainActivity.ROTATION_LANDSCAPE_COUNTERCLOCKWISE:
+                        if (smileDetection) {
+                            drawSmiley(rect.left-strokeWidth*12,rect.centerY()+strokeWidth*10*(iconCount*2-count+1), strokeWidth*8, paint, canvas, face.smile);
+                            ++iconCount;
+                        }
+                        if (facialMotionDetection) {
+                            drawMotion(rect.left-strokeWidth*12,rect.centerY()+strokeWidth*10*(iconCount*2-count+1), strokeWidth*8, paint, canvas, face.noMotion);
+                            ++iconCount;
+                        }
+                        if (eyeDetection) {
+                            drawEye(rect.left-strokeWidth*12,rect.centerY()+strokeWidth*10*(iconCount*2-count+1), strokeWidth*8, paint, canvas, face.eyesOpen);
+                            ++iconCount;
+                        }
+                        if (facialTimeout && timeoutPercentage >= 0.5) {
+                            drawTimer(rect.left-strokeWidth*12,rect.centerY()+strokeWidth*10*(iconCount*2-count+1), strokeWidth*8, paint, canvas, timeoutPercentage);
+                            ++iconCount;
+                        }
+                        break;
                 }
-                if (facialMotionDetection) {
-                    drawMotion(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.noMotion);
-                    ++iconCount;
-                }
-                if (eyeDetection) {
-                    drawEye(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, face.eyesOpen);
-                    ++iconCount;
-                }
-                if (facialTimeout && timeoutPercentage >= 0.5) {
-                    drawTimer(rect.centerX()+strokeWidth*10*(iconCount*2-count+1),rect.bottom+strokeWidth*12, strokeWidth*8, paint, canvas, timeoutPercentage);
-                    ++iconCount;
-                }
+
 
                 paint.setStrokeWidth(defaultStrokeWidth);
             }
@@ -204,11 +237,12 @@ public class CameraOverlayView extends View {
     }
 
     // update the faces (and record the image width and height from which they were recognized)
-    public void updateFaces(Face[] faces, int imagew, int imageh, boolean generalMotionDetected) {
+    public void updateFaces(Face[] faces, int imagew, int imageh, boolean generalMotionDetected, int rotationDirection) {
         this.faces = faces;
         this.imagew = imagew;
         this.imageh = imageh;
         this.generalMotionDetected = generalMotionDetected;
+        this.rotationDirection = rotationDirection;
 
         invalidate(); // makes it redraw the canvas
     }
@@ -226,28 +260,85 @@ public class CameraOverlayView extends View {
 
     public void drawSmiley(float x, float y, float r, Paint paint, Canvas canvas, boolean smiling) {
         canvas.drawCircle(x, y, r, paint);
-        canvas.drawCircle(x-r/3, y-r/3, paint.getStrokeWidth()/2, paint);
-        canvas.drawCircle(x+r/3, y-r/3, paint.getStrokeWidth()/2, paint);
+        switch (rotationDirection) {
+            case MainActivity.ROTATION_PORTRAIT:
+                canvas.drawCircle(x-r/3, y-r/3, paint.getStrokeWidth()/2, paint);
+                canvas.drawCircle(x+r/3, y-r/3, paint.getStrokeWidth()/2, paint);
 
-        if (smiling) {
-            canvas.drawArc(x-r/2, y-r/2, x+r/2, y+r/2, 30, 120, false, paint);
+                if (smiling) {
+                    canvas.drawArc(x-r/2, y-r/2, x+r/2, y+r/2, 30, 120, false, paint);
+                }
+                else {
+                    canvas.drawLine(x-r/2,y+r/3, x+r/2, y+r/3, paint);
+                }
+                break;
+            case MainActivity.ROTATION_LANDSCAPE_CLOCKWISE:
+                canvas.drawCircle(x-r/3, y-r/3, paint.getStrokeWidth()/2, paint);
+                canvas.drawCircle(x-r/3, y+r/3, paint.getStrokeWidth()/2, paint);
+
+                if (smiling) {
+                    canvas.drawArc(x-r/2, y-r/2, x+r/2, y+r/2, -60, 120, false, paint);
+                }
+                else {
+                    canvas.drawLine(x+r/3,y-r/2, x+r/3, y+r/2, paint);
+                }
+                break;
+            case MainActivity.ROTATION_LANDSCAPE_COUNTERCLOCKWISE:
+                canvas.drawCircle(x+r/3, y-r/3, paint.getStrokeWidth()/2, paint);
+                canvas.drawCircle(x+r/3, y+r/3, paint.getStrokeWidth()/2, paint);
+
+                if (smiling) {
+                    canvas.drawArc(x-r/2, y-r/2, x+r/2, y+r/2, 120, 120, false, paint);
+                }
+                else {
+                    canvas.drawLine(x-r/3,y-r/2, x-r/3, y+r/2, paint);
+                }
+                break;
         }
-        else {
-            canvas.drawLine(x-r/2,y+r/3, x+r/2, y+r/3, paint);
-        }
+
     }
 
     public void drawEye(float x, float y, float r, Paint paint, Canvas canvas, boolean eyesOpen) {
-        canvas.drawArc(x-1.4f*r,y-3.73f*r,x+0.4f*r,y+0.27f*r,60,60,false,paint);
-        canvas.drawArc(x-0.4f*r,y-3.73f*r,x+1.4f*r,y+0.27f*r,60,60,false,paint);
-        if (eyesOpen) {
-            canvas.drawArc(x-1.4f*r,y-0.27f*r,x+0.4f*r,y+3.73f*r,240,60,false,paint);
-            canvas.drawArc(x-0.4f*r,y-0.27f*r,x+1.4f*r,y+3.73f*r,240,60,false,paint);
+        switch (rotationDirection) {
+            case MainActivity.ROTATION_PORTRAIT:
+                canvas.drawArc(x-1.4f*r,y-3.73f*r,x+0.4f*r,y+0.27f*r,60,60,false,paint);
+                canvas.drawArc(x-0.4f*r,y-3.73f*r,x+1.4f*r,y+0.27f*r,60,60,false,paint);
+                if (eyesOpen) {
+                    canvas.drawArc(x - 1.4f * r, y - 0.27f * r, x + 0.4f * r, y + 3.73f * r, 240, 60, false, paint);
+                    canvas.drawArc(x - 0.4f * r, y - 0.27f * r, x + 1.4f * r, y + 3.73f * r, 240, 60, false, paint);
 
-            paint.setStyle(Paint.Style.FILL);
-            canvas.drawCircle(x-0.5f*r,y-0.04f*r,paint.getStrokeWidth(),paint);
-            canvas.drawCircle(x+0.5f*r,y-0.04f*r,paint.getStrokeWidth(),paint);
-            paint.setStyle(Paint.Style.STROKE);
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawCircle(x - 0.5f * r, y - 0.04f * r, paint.getStrokeWidth(), paint);
+                    canvas.drawCircle(x + 0.5f * r, y - 0.04f * r, paint.getStrokeWidth(), paint);
+                    paint.setStyle(Paint.Style.STROKE);
+                }
+                break;
+            case MainActivity.ROTATION_LANDSCAPE_CLOCKWISE:
+                canvas.drawArc(x-3.73f*r,y-1.4f*r,x+0.27f*r,y+0.4f*r,-30,60,false,paint);
+                canvas.drawArc(x-3.73f*r,y-0.4f*r,x+0.27f*r,y+1.4f*r,-30,60,false,paint);
+                if (eyesOpen) {
+                    canvas.drawArc(x - 0.27f * r, y - 1.4f * r, x + 3.73f * r, y + 0.4f * r, 150, 60, false, paint);
+                    canvas.drawArc(x - 0.27f * r, y - 0.4f * r, x + 3.73f * r, y + 1.4f * r, 150, 60, false, paint);
+
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawCircle(x - 0.04f * r, y - 0.5f * r, paint.getStrokeWidth(), paint);
+                    canvas.drawCircle(x - 0.04f * r, y + 0.5f * r, paint.getStrokeWidth(), paint);
+                    paint.setStyle(Paint.Style.STROKE);
+                }
+                break;
+            case MainActivity.ROTATION_LANDSCAPE_COUNTERCLOCKWISE:
+                canvas.drawArc(x-0.27f*r,y-1.4f*r,x+3.73f*r,y+0.4f*r,150,60,false,paint);
+                canvas.drawArc(x-0.27f*r,y-0.4f*r,x+3.73f*r,y+1.4f*r,150,60,false,paint);
+                if (eyesOpen) {
+                    canvas.drawArc(x - 3.73f * r, y - 1.4f * r, x + 0.27f * r, y + 0.4f * r, -30, 60, false, paint);
+                    canvas.drawArc(x - 3.73f * r, y - 0.4f * r, x + 0.27f * r, y + 1.4f * r, -30, 60, false, paint);
+
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.drawCircle(x + 0.04f * r, y - 0.5f * r, paint.getStrokeWidth(), paint);
+                    canvas.drawCircle(x + 0.04f * r, y + 0.5f * r, paint.getStrokeWidth(), paint);
+                    paint.setStyle(Paint.Style.STROKE);
+                }
+                break;
         }
     }
 
@@ -256,29 +347,72 @@ public class CameraOverlayView extends View {
             canvas.drawCircle(x,y,r*2f/3f,paint);
         }
         else {
-            canvas.drawCircle(x+r*2/5,y,r*3/5,paint);
+            switch (rotationDirection) {
+                case MainActivity.ROTATION_PORTRAIT:
+                    canvas.drawCircle(x+r*2/5,y,r*3/5,paint);
 
-            paint.setAlpha(159);
-            canvas.drawCircle(x,y,r*3/5,paint);
+                    paint.setAlpha(159);
+                    canvas.drawCircle(x,y,r*3/5,paint);
 
-            paint.setAlpha(95);
-            canvas.drawCircle(x-r*2/5,y,r*3f/5,paint);
+                    paint.setAlpha(95);
+                    canvas.drawCircle(x-r*2/5,y,r*3f/5,paint);
 
-            paint.setAlpha(PAINT_OPACITY);
+                    paint.setAlpha(PAINT_OPACITY);
+                    break;
+                case MainActivity.ROTATION_LANDSCAPE_CLOCKWISE:
+                    canvas.drawCircle(x,y-r*2/5,r*3/5,paint);
+
+                    paint.setAlpha(159);
+                    canvas.drawCircle(x,y,r*3/5,paint);
+
+                    paint.setAlpha(95);
+                    canvas.drawCircle(x,y+r*2/5,r*3f/5,paint);
+
+                    paint.setAlpha(PAINT_OPACITY);
+                    break;
+                case MainActivity.ROTATION_LANDSCAPE_COUNTERCLOCKWISE:
+                    canvas.drawCircle(x,y+r*2/5,r*3/5,paint);
+
+                    paint.setAlpha(159);
+                    canvas.drawCircle(x,y,r*3/5,paint);
+
+                    paint.setAlpha(95);
+                    canvas.drawCircle(x,y-r*2/5,r*3f/5,paint);
+
+                    paint.setAlpha(PAINT_OPACITY);
+                    break;
+            }
         }
     }
 
     public void drawTimer(float x, float y, float r, Paint paint, Canvas canvas, float percentage) {
         canvas.drawCircle(x,y,r,paint);
-        canvas.drawLine(x,y,x,y-r*2/3,paint);
-        if (percentage < 1) {
-            canvas.drawLine(x,y,(float) (x+r*2/3*Math.sin(percentage*6.2831853)),(float) (y-r*2/3*Math.cos(percentage*6.2831853)), paint);
+        switch (rotationDirection) {
+            case MainActivity.ROTATION_PORTRAIT:
+                canvas.drawLine(x,y,x,y-r*2/3,paint);
+                if (percentage < 1) {
+                    canvas.drawLine(x,y,(float) (x+r*2/3*Math.sin(percentage*6.2831853)),(float) (y-r*2/3*Math.cos(percentage*6.2831853)), paint);
+                }
+                break;
+            case MainActivity.ROTATION_LANDSCAPE_CLOCKWISE:
+                canvas.drawLine(x,y,x-r*2/3,y,paint);
+                if (percentage < 1) {
+                    canvas.drawLine(x,y,(float) (x-r*2/3*Math.cos(percentage*6.2831853)),(float) (y-r*2/3*Math.sin(percentage*6.2831853)), paint);
+                }
+                break;
+            case MainActivity.ROTATION_LANDSCAPE_COUNTERCLOCKWISE:
+                canvas.drawLine(x,y,x+r*2/3,y,paint);
+                if (percentage < 1) {
+                    canvas.drawLine(x,y,(float) (x+r*2/3*Math.cos(percentage*6.2831853)),(float) (y+r*2/3*Math.sin(percentage*6.2831853)), paint);
+                }
+                break;
         }
     }
 
     // convert a rectangle on the camera image to a rectangle on the canvas
     public static RectF imageToCanvas(Rect r, int w, int h, int imagew, int imageh, int sensorOrientation) {
         RectF r2 = new RectF();
+        /*
         if (!samsung) {
             switch (sensorOrientation) {
                 case 0:
@@ -323,6 +457,35 @@ public class CameraOverlayView extends View {
                     Log.i("PHONETEST", "ROTATION: unknown");
             }
         }
+        */
+
+        switch (rotationDirection) {
+            case MainActivity.ROTATION_PORTRAIT:
+                r2.left = r.left * w / imageh;
+                r2.top = h - r.bottom * h / imagew;
+                r2.right = r.right * w / imageh;
+                r2.bottom = h - r.top * h / imagew;
+                break;
+            case MainActivity.ROTATION_LANDSCAPE_CLOCKWISE:
+                r2.left = w - r.bottom * w / imageh;
+                r2.top = h - r.right * h / imagew;
+                r2.right = w - r.top * w / imageh;
+                r2.bottom = h - r.left * h / imagew;
+                break;
+            case MainActivity.ROTATION_LANDSCAPE_COUNTERCLOCKWISE:
+                r2.left = r.top * w / imageh;
+                r2.top = r.left * h / imagew;
+                r2.right = r.bottom * w / imageh;
+                r2.bottom = r.right * h / imagew;
+                break;
+                /*
+                r2.left = r.top * w / imageh;
+                r2.top = h - r.left * h / imagew;
+                r2.right = r.bottom * w / imageh;
+                r2.bottom = h - r.right * h / imagew;
+                break;*/
+
+        }
 
         return r2;
 
@@ -349,10 +512,6 @@ public class CameraOverlayView extends View {
 
     public void updateSensorOrientation(int sensorOrientation) {
         this.sensorOrientation = sensorOrientation;
-    }
-
-    public void updateScreenOrientation(int screenOrientation) {
-        this.screenOrientation = screenOrientation;
     }
 
     public void updatePreferences(boolean smileDetection, boolean faceDetection, boolean generalMotionDetection, boolean facialMotionDetection, boolean facialTimeout) {
