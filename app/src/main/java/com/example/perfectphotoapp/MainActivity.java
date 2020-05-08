@@ -592,7 +592,7 @@ public class MainActivity extends AppCompatActivity {
 
             new AlertDialog.Builder(this)
                     .setTitle(R.string.permission_needed)
-                    .setMessage(R.string.camera_open_error)
+                    .setMessage(R.string.camera_access_required)
                     .setPositiveButton(R.string.permission_ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {

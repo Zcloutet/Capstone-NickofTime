@@ -31,7 +31,7 @@
 
     <!-- gallery strings -->
     <string name="info">Info</string>
-    <string name="taken_on">Taken on </string>
+    <string name="taken_on">Taken on&#160;</string>
 
 
     <!-- gallery toasts -->

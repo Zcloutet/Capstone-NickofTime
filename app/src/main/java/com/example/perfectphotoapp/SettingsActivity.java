@@ -146,8 +146,8 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void goBack(){
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
+        //Intent intent = new Intent(this, MainActivity.class);
+        //startActivity(intent);
         this.finish();
     }
 }
